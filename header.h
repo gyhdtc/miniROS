@@ -19,9 +19,8 @@ class MyThread;
 
 static int keepRunning = 1;
 
-void stest(int *, struct sockaddr_in *);
+void stest(int *, struct sockaddr_in *, Master *);
 typedef decltype(stest)* ServerCallBack;
-
 
 void ctest(int *);
 typedef decltype(ctest)* ClientCallBack;

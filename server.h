@@ -8,19 +8,15 @@ class Server {
         int _port;
         char *_ip;
         int socket_fd;
-        ServerCallBack _pf;
         struct sockaddr_in addr;
         struct sockaddr_in client;
         
     public:
         void ServerInit();
         void ServerBindIpAndPort();
-        void WaitForConnect();
-        static void ServerHandler(int *, struct sockaddr_in *);
         
-        Server(int port, char *ip, ServerCallBack cb) : _port(port), _ip(ip), _pf(cb) {};
-        Server(int, string, ServerCallBack);
-        Server(ServerCallBack);
+        Server(int port, char *ip) : _port(port), _ip(ip) {};
+        Server(int, string);
         Server();
         ~Server();
 };
@@ -51,66 +47,19 @@ void Server::ServerBindIpAndPort() {
     cout << "bind ok 等待客户端的连接" << endl;
 }
 
-void Server::WaitForConnect() {
-    listen(socket_fd,30);
-    socklen_t len = sizeof(client);
-    while (1) {
-        int fd = accept(socket_fd,(struct sockaddr*)&client,&len);
-        if (fd == -1)
-        {
-            cout << "accept错误\n" << endl;
-            exit(-1);
-        }
-        thread t1(_pf, &fd, &client);
-        t1.detach();
-    }
-}
 
-void Server::ServerHandler(int *fd, struct sockaddr_in *client) {
-    /* rewrite */
-    char *ip = inet_ntoa(client->sin_addr);
-    cout << "客户： 【" << ip << "】连接成功" << endl;
 
-    write(*fd, "welcome", 7);
-
-    char buffer[255]={};
-
-    int size = read(*fd, buffer, sizeof(buffer));    
-    cout << "接收到字节数为： " << size << endl;
-    cout << "内容： " << buffer << endl;
-    string name = buffer;
-    /* rewrite */
-
-    while
-    (
-        !(read(*fd, buffer, sizeof(buffer)) == 0 
-        || read(*fd, buffer, sizeof(buffer)) == -1)
-    );
-    
-    cout << "END" << endl;
-    close(*fd);
-}
-
-Server::Server(int port, string s, ServerCallBack cb) {
+Server::Server(int port, string s) {
     this->_port = port;
     
     char *ip = new char[s.length()+1];
     strcpy(ip, s.c_str());
     this->_ip = ip;
-
-    this->_pf = cb;
-}
-
-Server::Server(ServerCallBack cb) {
-    this->_port = 8888;
-    this->_ip = (char*)"127.0.0.1";
-    this->_pf = cb;
 }
 
 Server::Server() {
     this->_port = 8888;
-    this->_ip = (char*)"127.0.0.1";
-    this->_pf = ServerHandler;
+    this->_ip = (char*)"0.0.0.0";
 }
 
 Server::~Server() {
