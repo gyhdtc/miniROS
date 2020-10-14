@@ -1,7 +1,6 @@
-#include "master.h"
-#include "client.h"
+#include "node.h"
 
-void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
+void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
     cout << "客户： 【" << ip << "】连接成功" << endl;
@@ -22,7 +21,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     /* rewrite */
 }
 
-void MyClientCallBack(int *socket_fd) {
+void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
     write(*socket_fd,"hello mycallback",16);
     char buffer[255]={};
@@ -34,16 +33,15 @@ void MyClientCallBack(int *socket_fd) {
 
 int main()
 {
+    string name = "gyh1";
     int port = 8889;
     string ip = "0.0.0.0";
-    Master master(port, ip, MyServerCallBack);
-    StartServer(&master);
+    RosNode node1(name, port, ip, MyServerCallBack);
 
-    Client client(8888, "127.0.0.1", MyClientCallBack);
-    client.ClientInit();
-    client.ClientBindIpAndPort();
+    node1.CreateClient(8888, "127.0.0.1", MyClientCallBack, "gyh1");
 
     signal(SIGINT, SigThread);
+
     while (keepRunning);
     return 0;
 }

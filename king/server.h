@@ -25,7 +25,7 @@ void Server::ServerInit() {
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1)
     {
-        cout << "socket 创建失败： "<< endl;
+        cout << "socket create false "<< endl;
         exit(1);
     }
     addr.sin_family = AF_INET;
@@ -40,10 +40,10 @@ void Server::ServerBindIpAndPort() {
     int res = bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr));
     if (res == -1)
     {
-        cout << "bind创建失败： " << endl;
+        cout << "server bind false" << endl;
         exit(-1);
     }
-    cout << "bind ok 等待客户端的连接" << endl;
+    cout << "server bind success" << endl;
 }
 
 

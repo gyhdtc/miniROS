@@ -16,13 +16,15 @@ class Master;
 class Server;
 class Client;
 class MyThread;
+class RosNode;
 
 static int keepRunning = 1;
 
 void stest(int *, struct sockaddr_in *, Master *);
 typedef decltype(stest)* ServerCallBack;
-
-void ctest(int *);
+void ntest(int *, struct sockaddr_in *, RosNode *);
+typedef decltype(ntest)* NodeCallBack;
+void ctest(int *, string);
 typedef decltype(ctest)* ClientCallBack;
 
 static void SigThread(int);

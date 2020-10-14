@@ -7,27 +7,25 @@ class Client {
     public:
         int _port;
         char *_ip;
-        int socket_fd;
         ClientCallBack _cf; 
+        string text;
+        int socket_fd;
         struct sockaddr_in addr;
 
         void ClientInit();
         void ClientBindIpAndPort();
 
-        static void ClientHandler(int *);
+        static void ClientHandler(int *, string);
 
-        Client(int port, char *ip, ClientCallBack cb) : _port(port), _ip(ip), _cf(cb) {};
-        Client(int, string, ClientCallBack);
-        Client();
+        Client(int port, char *ip, ClientCallBack cb, string t) : _port(port), _ip(ip), _cf(cb), text(t) {};
         ~Client();
 };
 
 void Client::ClientInit() {
-    signal(SIGINT, SigThread);
     socket_fd = socket(AF_INET, SOCK_STREAM,0);
     if(socket_fd == -1)
     {
-        cout<<"socket 创建失败："<<endl;
+        cout<<"socket create false" << endl;
     }
     addr.sin_family = AF_INET;
     if (_port > 7000 && _port < 9000)
@@ -38,38 +36,23 @@ void Client::ClientInit() {
 }
 
 void Client::ClientBindIpAndPort() {
-    cout << addr.sin_port << endl;
     int res = connect(socket_fd,(struct sockaddr*)&addr,sizeof(addr));
     if(res == -1)
     {
-        cout<<"bind 链接失败："<<endl;
+        cout<<"client bind false" << endl;
         return;
     }
-    cout<<"bind 链接成功："<<endl;
-    thread t(_cf, &this->socket_fd);
+    cout<<"client bind success" << endl;
+    thread t(_cf, &this->socket_fd, text);
     t.detach();
 }
 
-void Client::ClientHandler(int *socket_fd) {
-    write(*socket_fd,"hello hebinbing",15);
+void Client::ClientHandler(int *socket_fd, string s) {
+    write(*socket_fd,"hello ",15);
     char buffer[255]={};
     int size = read(*socket_fd, buffer, sizeof(buffer));
     cout << "接收到字节数为： " << size << endl;
     cout << "内容： " << buffer << endl;
-}
-
-Client::Client() {
-    this->_port = 8888;
-    this->_ip = (char*)"127.0.0.1";
-    this->_cf = ClientHandler;
-}
-
-Client::Client(int port, string s, ClientCallBack cb) {
-    this->_port = port;
-    char *ip = new char[s.length()+1];
-    strcpy(ip, s.c_str());
-    this->_ip = ip;
-    this->_cf = cb;
 }
 
 Client::~Client() {

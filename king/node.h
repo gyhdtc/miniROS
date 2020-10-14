@@ -3,52 +3,40 @@
 #include "header.h"
 #endif
 #include "server.h"
+#include "client.h"
 
-class Master : public Server {
+class RosNode : public Server {
     private:
-        vector<Node> nodes;
-        ServerCallBack _sf;
+        Node node;
+        NodeCallBack _sf;
     public:
-        void PushName(string);
-        void GetName(int, string&);
-        int GetNameLen();
-        
+        void sub(string);
+        void put(string);
+
         void CreateServer();
         void WaitForConnect();
         
-        static void ServerHandler(int *, struct sockaddr_in *, Master *);
+        void CreateClient(int, char *, ClientCallBack, string);
 
-        Master(int port, char *ip, ServerCallBack cb) : Server(port, ip), _sf(cb) {};
-        Master(int port, string ip, ServerCallBack cb) : Server(port, ip), _sf(cb) {};
-        ~Master();
+        static void ServerHandler(int *, struct sockaddr_in *, RosNode *);
+
+        RosNode(string name, int port, char *ip, NodeCallBack cb) : Server(port, ip), _sf(cb) {};
+        RosNode(string name, int port, string ip, NodeCallBack cb) : Server(port, ip), _sf(cb) {};
+        ~RosNode();
 };
 
-void Master::PushName(string s) {
-    Node t;
-    t.name = s;
-    nodes.push_back(t);
+void RosNode::CreateClient(int port, char *ip, ClientCallBack cb, string text) {
+    Client client(port, ip, cb, text);
+    client.ClientInit();
+    client.ClientBindIpAndPort();
 }
 
-void Master::GetName(int i, string &name) {
-    if (i > 0 && i <= nodes.size())
-    {
-        name = nodes[i-1].name;
-        return;
-    }
-    name = "";
-    return;
-}
-
-int Master::GetNameLen() {
-    return nodes.size();
-}
-
-void Master::CreateServer() {
+void RosNode::CreateServer() {
     this->ServerInit();
     this->ServerBindIpAndPort();
 }
 
-void Master::WaitForConnect() {
+void RosNode::WaitForConnect() {
     listen(socket_fd,30);
     socklen_t len = sizeof(client);
     while (1) {
@@ -63,7 +51,7 @@ void Master::WaitForConnect() {
     }
 }
 
-void Master::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
+void RosNode::ServerHandler(int *fd, struct sockaddr_in *client, RosNode *m) {
     char *ip = inet_ntoa(client->sin_addr);
     cout << "客户： 【" << ip << "】连接成功" << endl;
     write(*fd, "welcome", 7);
@@ -82,16 +70,16 @@ void Master::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
     close(*fd);
 }
 
-void shit(Master *m) {
+void shit(RosNode *m) {
     m->CreateServer();
     m->WaitForConnect();
 }
 
-void StartServer(Master *m) {
+void StartServer(RosNode *m) {
     thread t(shit, m);
     t.detach();
 }
 
-Master::~Master() {
+RosNode::~RosNode() {
     cout << "master stop!\n";
 }
