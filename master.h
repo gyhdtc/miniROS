@@ -67,26 +67,20 @@ void Master::WaitForConnect() {
 }
 
 void Master::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
-    /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
     cout << "客户： 【" << ip << "】连接成功" << endl;
-
     write(*fd, "welcome", 7);
-
     char buffer[255]={};
-
     int size = read(*fd, buffer, sizeof(buffer));    
     cout << "接收到字节数为： " << size << endl;
     cout << "内容： " << buffer << endl;
     string name = buffer;
     /* rewrite */
-
     while
     (
         !(read(*fd, buffer, sizeof(buffer)) == 0 
         || read(*fd, buffer, sizeof(buffer)) == -1)
     );
-    cout << m->nodes[0].name << endl;
     cout << "END" << endl;
     close(*fd);
 }

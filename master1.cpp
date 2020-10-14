@@ -20,8 +20,8 @@ int main()
     Master master;
 
     StartServer(&master);
+
     signal(SIGINT, SigThread);
-    
     while (keepRunning);
     return 0;
 }
