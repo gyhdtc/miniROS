@@ -8,7 +8,6 @@ class Master : public Server {
     private:
         vector<Node> nodes;
         ServerCallBack _sf;
-        ClientCallBack _cf;
     public:
         void PushName(string);
         void GetName(int, string&);

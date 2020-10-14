@@ -10,8 +10,7 @@ class Server {
         int socket_fd;
         struct sockaddr_in addr;
         struct sockaddr_in client;
-        
-    public:
+
         void ServerInit();
         void ServerBindIpAndPort();
         
