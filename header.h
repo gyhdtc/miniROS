@@ -33,3 +33,11 @@ void SigThread(int sig) {
         cout << endl;
     }
 }
+
+struct Node {
+    int port;
+    string ip;
+    string name;
+    vector<string> sub_list;
+    vector<string> put_list;
+};

@@ -3,14 +3,6 @@
 #include "header.h"
 #endif
 
-struct Node {
-    int port;
-    string ip;
-    string name;
-    vector<string> sub_list;
-    vector<string> put_list;
-};
-
 class Master {
     private:
         vector<Node> nodes;
