@@ -9,6 +9,9 @@ class RosNode : public Server {
     private:
         Node node;
         NodeCallBack _sf;
+        ClientCallBack _cf;
+        int master_port;
+        char *master_ip;
     public:
         void sub(string);
         void put(string);
@@ -16,14 +19,30 @@ class RosNode : public Server {
         void CreateServer();
         void WaitForConnect();
         
+        void zhuce(int, char *, int, char *, string);
+        string zhuce_t();
+
+        void sub(string);
+
         void CreateClient(int, char *, ClientCallBack, string);
 
         static void ServerHandler(int *, struct sockaddr_in *, RosNode *);
 
-        RosNode(string name, int port, char *ip, NodeCallBack cb) : Server(port, ip), _sf(cb) {};
-        RosNode(string name, int port, string ip, NodeCallBack cb) : Server(port, ip), _sf(cb) {};
+        RosNode(int port, char *ip, NodeCallBack sf, ClientCallBack cf) : 
+        Server(port, ip), _sf(sf), _cf(cf){};
         ~RosNode();
-};
+};  
+string RosNode::zhuce_t() {
+    return "[name:" + node.name + ";ip:" + node.ip + ";port:" + to_string(node.port) + "]";
+}
+void RosNode::zhuce(int port, char *ip, int mport, char *mip, string name) {
+    node.ip = ip;
+    node.name = name;
+    node.port = port;
+    master_port = mport;
+    master_ip = mip;
+    CreateClient(master_port, master_ip, _cf, zhuce_t());
+}
 
 void RosNode::CreateClient(int port, char *ip, ClientCallBack cb, string text) {
     Client client(port, ip, cb, text);
@@ -37,7 +56,7 @@ void RosNode::CreateServer() {
 }
 
 void RosNode::WaitForConnect() {
-    listen(socket_fd,30);
+    listen(socket_fd, 30);
     socklen_t len = sizeof(client);
     while (1) {
         int fd = accept(socket_fd,(struct sockaddr*)&client,&len);
@@ -81,5 +100,5 @@ void StartServer(RosNode *m) {
 }
 
 RosNode::~RosNode() {
-    cout << "master stop!\n";
+    cout << "Node stop!\n";
 }

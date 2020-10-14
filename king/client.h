@@ -44,7 +44,7 @@ void Client::ClientBindIpAndPort() {
     }
     cout<<"client bind success" << endl;
     thread t(_cf, &this->socket_fd, text);
-    t.detach();
+    t.join();
 }
 
 void Client::ClientHandler(int *socket_fd, string s) {

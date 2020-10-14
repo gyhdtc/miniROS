@@ -9,7 +9,7 @@
 #include <thread>
 #include <csignal>
 #include <vector>
-
+#define DEBUG 1
 using namespace std;
 
 class Master;
