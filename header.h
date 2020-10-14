@@ -19,7 +19,7 @@ class Master;
 
 static int keepRunning = 1;
 
-void stest(int *, struct sockaddr_in *, Master *);
+void stest(int *, struct sockaddr_in *);
 typedef decltype(stest)* ServerCallBack;
 
 void ctest(int *);

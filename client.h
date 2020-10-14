@@ -3,8 +3,6 @@
 #include "header.h"
 #endif
 
-
-
 class Client {
     private:
         int _port;

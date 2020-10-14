@@ -2,7 +2,6 @@
 #define A
 #include "header.h"
 #endif
-#include "master.h"
 
 class Server {
     private:
@@ -12,16 +11,16 @@ class Server {
         ServerCallBack _pf;
         struct sockaddr_in addr;
         struct sockaddr_in client;
-        Master *m;
+        
     public:
         void ServerInit();
         void ServerBindIpAndPort();
         void WaitForConnect();
-        static void ServerHandler(int *, struct sockaddr_in *, Master *);
-        Server(int port, char *ip, ServerCallBack cb, Master *M) : _port(port), _ip(ip), _pf(cb), m(M) {};
-        Server(int, string, ServerCallBack, Master *);
-        Server(ServerCallBack, Master *);
-        Server(Master *);
+        static void ServerHandler(int *, struct sockaddr_in *);
+        Server(int port, char *ip, ServerCallBack cb) : _port(port), _ip(ip), _pf(cb) {};
+        Server(int, string, ServerCallBack);
+        Server(ServerCallBack);
+        Server();
         ~Server();
 };
 
@@ -61,12 +60,12 @@ void Server::WaitForConnect() {
             cout << "accept错误\n" << endl;
             exit(-1);
         }
-        thread t1(_pf, &fd, &client, this->m);
+        thread t1(_pf, &fd, &client);
         t1.detach();
     }
 }
 
-Server::Server(int port, string s, ServerCallBack cb, Master *M) {
+Server::Server(int port, string s, ServerCallBack cb) {
     this->_port = port;
     
     char *ip = new char[s.length()+1];
@@ -74,22 +73,18 @@ Server::Server(int port, string s, ServerCallBack cb, Master *M) {
     this->_ip = ip;
 
     this->_pf = cb;
-
-    this->m = M;
 }
 
-Server::Server(ServerCallBack cb, Master *M) {
+Server::Server(ServerCallBack cb) {
     this->_port = 8888;
     this->_ip = (char*)"127.0.0.1";
     this->_pf = cb;
-    this->m = M;
 }
 
-Server::Server(Master *M) {
+Server::Server() {
     this->_port = 8888;
     this->_ip = (char*)"127.0.0.1";
     this->_pf = ServerHandler;
-    this->m = M;
 }
 
 Server::~Server() {
@@ -97,7 +92,7 @@ Server::~Server() {
     cout << "close server" << endl;
 }
 
-void Server::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
+void Server::ServerHandler(int *fd, struct sockaddr_in *client) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
     cout << "客户： 【" << ip << "】连接成功" << endl;
@@ -110,7 +105,6 @@ void Server::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
     cout << "接收到字节数为： " << size << endl;
     cout << "内容： " << buffer << endl;
     string name = buffer;
-    m->PushName(name);
     /* rewrite */
 
     while

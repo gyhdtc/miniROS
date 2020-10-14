@@ -2,12 +2,13 @@
 #define A
 #include "header.h"
 #endif
-
-class Master {
+#include "server.h"
+class Master : public Server {
     private:
         vector<Node> nodes;
+
     public:
-        Master();
+        Master(int port, char *ip, ServerCallBack cb) : Server(port, ip, cb) {};
         ~Master();
         void PushName(string);
         void GetName(int, string&);
