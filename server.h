@@ -4,7 +4,7 @@
 #endif
 
 class Server {
-    private:
+    public:
         int _port;
         char *_ip;
         int socket_fd;
@@ -17,6 +17,7 @@ class Server {
         void ServerBindIpAndPort();
         void WaitForConnect();
         static void ServerHandler(int *, struct sockaddr_in *);
+        
         Server(int port, char *ip, ServerCallBack cb) : _port(port), _ip(ip), _pf(cb) {};
         Server(int, string, ServerCallBack);
         Server(ServerCallBack);
@@ -65,6 +66,31 @@ void Server::WaitForConnect() {
     }
 }
 
+void Server::ServerHandler(int *fd, struct sockaddr_in *client) {
+    /* rewrite */
+    char *ip = inet_ntoa(client->sin_addr);
+    cout << "客户： 【" << ip << "】连接成功" << endl;
+
+    write(*fd, "welcome", 7);
+
+    char buffer[255]={};
+
+    int size = read(*fd, buffer, sizeof(buffer));    
+    cout << "接收到字节数为： " << size << endl;
+    cout << "内容： " << buffer << endl;
+    string name = buffer;
+    /* rewrite */
+
+    while
+    (
+        !(read(*fd, buffer, sizeof(buffer)) == 0 
+        || read(*fd, buffer, sizeof(buffer)) == -1)
+    );
+    
+    cout << "END" << endl;
+    close(*fd);
+}
+
 Server::Server(int port, string s, ServerCallBack cb) {
     this->_port = port;
     
@@ -90,29 +116,4 @@ Server::Server() {
 Server::~Server() {
     close(socket_fd);
     cout << "close server" << endl;
-}
-
-void Server::ServerHandler(int *fd, struct sockaddr_in *client) {
-    /* rewrite */
-    char *ip = inet_ntoa(client->sin_addr);
-    cout << "客户： 【" << ip << "】连接成功" << endl;
-
-    write(*fd, "welcome", 7);
-
-    char buffer[255]={};
-
-    int size = read(*fd, buffer, sizeof(buffer));    
-    cout << "接收到字节数为： " << size << endl;
-    cout << "内容： " << buffer << endl;
-    string name = buffer;
-    /* rewrite */
-
-    while
-    (
-        !(read(*fd, buffer, sizeof(buffer)) == 0 
-        || read(*fd, buffer, sizeof(buffer)) == -1)
-    );
-    
-    cout << "END" << endl;
-    close(*fd);
 }

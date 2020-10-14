@@ -8,20 +8,17 @@ class Master : public Server {
         vector<Node> nodes;
 
     public:
-        Master(int port, char *ip, ServerCallBack cb) : Server(port, ip, cb) {};
-        ~Master();
         void PushName(string);
         void GetName(int, string&);
         int GetNameLen();
+        void CreateServer();
+        
+        Master(int port, char *ip, ServerCallBack cb) : Server(port, ip, cb) {};
+        Master(int port, string ip, ServerCallBack cb) : Server(port, ip, cb) {};
+        Master(ServerCallBack cb) : Server(cb) {};
+        Master() : Server() {};
+        ~Master();
 };
-
-Master::Master() {
-    cout << "master start!\n";
-}
-
-Master::~Master() {
-    cout << "master stop!\n";
-}
 
 void Master::PushName(string s) {
     Node t;
@@ -41,4 +38,14 @@ void Master::GetName(int i, string &name) {
 
 int Master::GetNameLen() {
     return nodes.size();
+}
+
+void Master::CreateServer() {
+    this->ServerInit();
+    this->ServerBindIpAndPort();
+    this->WaitForConnect();
+}
+
+Master::~Master() {
+    cout << "master stop!\n";
 }

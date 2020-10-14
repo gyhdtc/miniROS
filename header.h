@@ -12,15 +12,16 @@
 
 using namespace std;
 
+class Master;
 class Server;
 class Client;
 class MyThread;
-class Master;
 
 static int keepRunning = 1;
 
 void stest(int *, struct sockaddr_in *);
 typedef decltype(stest)* ServerCallBack;
+
 
 void ctest(int *);
 typedef decltype(ctest)* ClientCallBack;
