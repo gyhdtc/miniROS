@@ -25,8 +25,8 @@ void MyClientCallBack(int *socket_fd, string s) {
 
 int main()
 {
-    string name = "gyh1";
-    int port = 8889;
+    string name = "gyh2";
+    int port = 8890;
     char *ip = (char *)"127.0.0.1";
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&node1);
@@ -36,9 +36,9 @@ int main()
 
     node1.Reg(port, ip, master_port, master_ip, name);
     //sleep(3);
-    node1.Sub("result");
+    node1.Sub("blue");
     //sleep(3);
-    node1.Pub("blue");
+    node1.Pub("result");
     cout << "shit" << endl;
     signal(SIGINT, SigThread);
 

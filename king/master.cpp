@@ -6,7 +6,101 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     char *ip = inet_ntoa(client->sin_addr);
     char buffer[255]={};
     int size = read(*fd, buffer, sizeof(buffer));    
-    cout << "内容： " << buffer << endl;
+    cout << "内容: " << buffer << endl;
+    switch (buffer[0])
+    {
+    case '1':
+    {
+        cout << "reg:" << endl;
+        string nodename, ip;
+        int port;
+        int flag = 0;
+        int i, j;
+        for (i = 0; i < size; i++)
+        {
+            if (buffer[i] == ':')
+            {
+                i += 1;
+                for (j = i; j < size; j++)
+                {
+                    if (buffer[j] == ';')
+                    {
+                        flag ++;
+                        char *c = new char(j-i);
+                        strncpy(c, buffer+i, j-i);
+                        if (flag == 1) nodename = (string)c;
+                        if (flag == 2) ip = (string)c;
+                        if (flag == 3) port = atoi(c);
+                        break;
+                    }                      
+                }
+            }
+        }
+        m->PushNode(nodename, ip, port);
+        break;
+    }
+    case '2':
+    {
+        cout << "sub:" << endl;
+        string nodename, subname;
+        int flag = 0;
+        int i, j;
+        for (i = 0; i < size; i++)
+        {
+            if (buffer[i] == ':')
+            {
+                i += 1;
+                for (j = i; j < size; j++)
+                {
+                    if (buffer[j] == ';')
+                    {
+                        flag ++;
+                        char *c = new char(j-i);
+                        strncpy(c, buffer+i, j-i);
+                        if (flag == 1) nodename = (string)c;
+                        if (flag == 2) subname = (string)c;
+                        break;
+                    }                      
+                }
+            }
+        }
+        m->AddSub(nodename, subname);
+        break;
+    }
+    case '3':
+    {
+        cout << "pub:" << endl;
+        string nodename, pubname;
+        int flag = 0;
+        int i, j;
+        for (i = 0; i < size; i++)
+        {
+            if (buffer[i] == ':')
+            {
+                i += 1;
+                for (j = i; j < size; j++)
+                {
+                    if (buffer[j] == ';')
+                    {
+                        flag ++;
+                        char *c = new char(j-i);
+                        strncpy(c, buffer+i, j-i);
+                        if (flag == 1) nodename = (string)c;
+                        if (flag == 2) pubname = (string)c;
+                        break;
+                    }                      
+                }
+            }
+        }
+        m->AddPub(nodename, pubname);
+        break;
+    }   
+    default:
+    {
+        cout << "error data" << endl;
+        break;
+    }
+    }
     /* rewrite */
     while
     (
@@ -14,7 +108,6 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
         || read(*fd, buffer, sizeof(buffer)) == -1)
     );
     close(*fd);
-    /* rewrite */
 }
 
 void MyClientCallBack(int *socket_fd) {
@@ -31,6 +124,12 @@ int main()
     StartServer(&master);
 
     signal(SIGINT, SigThread);
-    while (keepRunning);
+    while (keepRunning)
+    {
+        sleep(5);
+        master.ShowNodes();
+        sleep(1);
+        master.ShowMQ();
+    }
     return 0;
 }

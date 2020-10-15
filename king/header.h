@@ -9,7 +9,10 @@
 #include <thread>
 #include <csignal>
 #include <vector>
-#define DEBUG 1
+#define DEBUG 0
+#define REG to_string(1)
+#define SUB to_string(2)
+#define PUB to_string(3)
 using namespace std;
 
 class Master;
@@ -41,5 +44,11 @@ struct Node {
     string ip;
     string name;
     vector<string> sub_list;
-    vector<string> put_list;
+    vector<string> pub_list;
+};
+
+struct MessageQueue {
+    Node *pubnode = nullptr;
+    string name;
+    vector<Node *> subnodelist;
 };

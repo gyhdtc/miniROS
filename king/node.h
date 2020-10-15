@@ -19,33 +19,42 @@ class RosNode : public Server {
         void CreateServer();
         void WaitForConnect();
         
-        void zhuce(int, char *, int, char *, string);
-        string zhuce_t();
+        void Reg(int, char *, int, char *, string);
+        string RegT();
+        void Sub(string);
+        void Pub(string);
 
-        void sub(string);
-
-        void CreateClient(int, char *, ClientCallBack, string);
+        void CreateClient(string);
 
         static void ServerHandler(int *, struct sockaddr_in *, RosNode *);
 
         RosNode(int port, char *ip, NodeCallBack sf, ClientCallBack cf) : 
         Server(port, ip), _sf(sf), _cf(cf){};
         ~RosNode();
-};  
-string RosNode::zhuce_t() {
-    return "[name:" + node.name + ";ip:" + node.ip + ";port:" + to_string(node.port) + "]";
+};
+
+string RosNode::RegT() {
+    return REG + "[name:" + node.name + ";ip:" + node.ip + ";port:" + to_string(node.port) + ";]";
 }
-void RosNode::zhuce(int port, char *ip, int mport, char *mip, string name) {
+void RosNode::Reg(int port, char *ip, int mport, char *mip, string name) {
     node.ip = ip;
     node.name = name;
     node.port = port;
     master_port = mport;
     master_ip = mip;
-    CreateClient(master_port, master_ip, _cf, zhuce_t());
+    CreateClient(RegT());
+}
+void RosNode::Sub(string s) {
+    node.sub_list.push_back(s);
+    CreateClient(SUB+"[name:"+node.name+";sub:"+s+";]");
+}
+void RosNode::Pub(string s) {
+    node.pub_list.push_back(s);
+    CreateClient(PUB+"[name:"+node.name+";pub:"+s+";]");
 }
 
-void RosNode::CreateClient(int port, char *ip, ClientCallBack cb, string text) {
-    Client client(port, ip, cb, text);
+void RosNode::CreateClient(string text) {
+    Client client(master_port, master_ip, _cf, text);
     client.ClientInit();
     client.ClientBindIpAndPort();
 }
