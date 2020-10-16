@@ -6,6 +6,7 @@
 
 class Master : public Server {
     public:
+        map<string, int> name2index;
         vector<Node> nodes;
         vector<MessageQueue> MQ;
         ServerCallBack _sf;
@@ -28,53 +29,42 @@ class Master : public Server {
 };
 
 void Master::PushNode(string nodename, string ip, int port) {
-    cout << "---begin add a new node---" << endl;
-    for (auto i : nodes)
+    if (name2index.count(nodename) != 0)
     {
-        if (i.name == nodename)
-        {
-            cout << "node exsist" << endl;
-            return;
-        }
-        else if(i.ip == ip && i.port == port)
-        {
-            cout << "ip:port exsist" << endl;
-            return;           
-        }
+        cout << "exsist node" << endl;
+        return;
     }
     Node n;
     n.name = nodename;
     n.ip = ip;
     n.port = port;
+    n.index = nodes.size();
     nodes.push_back(n);
+    name2index[n.name] = n.index;
     cout << "+++add a new node+++" << n.name << endl;
     return;
 }
 void Master::AddSub(string nodename, string subname) {
-    cout << "---begin add a new sub---" << endl;
     int flag = 0;
-    int index; 
-    for (int i = 0; i < nodes.size(); i++)
+    int index = name2index.count(nodename) > 0 ? name2index[nodename]: -1;
+    if (index == -1)
     {
-        if (nodes[i].name == nodename)
-        {
-            index = i;
-            break;
-        }
+        cout << "no node" << endl;
+        return;
     }
     for (auto i : nodes[index].sub_list)
     {
         if (i == subname)
         {
-            cout << "xxxexsist subname of " << subname << endl;
+            cout << "xxx exsist subname of " << subname << endl;
             return;
         }
     }
-    for (auto i : MQ)
+    for (int i = 0; i < MQ.size(); i++)
     {
-        if (i.name == subname)
+        if (MQ[i].name == subname)
         {
-            i.subnodelist.push_back(&nodes[index]);
+            MQ[i].subnodelist.push_back(index);
             flag  = 1;
             break;
         }
@@ -83,72 +73,78 @@ void Master::AddSub(string nodename, string subname) {
     {
         MessageQueue mq;
         mq.name = subname;
-        mq.subnodelist.push_back(&nodes[index]);
+        mq.subnodelist.push_back(index);
         MQ.push_back(mq);
     }
     nodes[index].sub_list.push_back(subname);
-    //ShowOneNode(t);
     cout << "+++add a dingyue " << subname << " to " << nodename << endl;
     return;
 }
 void Master::AddPub(string nodename, string pubname) {
-    cout << "---begin add a new pub---" << endl;
     int flag = 0;
-    int index; 
-    for (int i = 0; i < nodes.size(); i++)
+    int index = name2index.count(nodename) > 0 ? name2index[nodename]: -1;
+    if (index == -1)
     {
-        if (nodes[i].name == nodename)
+        cout << "no node" << endl;
+        return;
+    }
+    for (auto i : nodes[index].pub_list)
+    {
+        if (i == pubname)
         {
-            index = i;
-            break;
+            cout << "xxx exsist pubname of " << pubname << endl;
+            return;
         }
     }
-    for (auto i : MQ)
+    for (int i = 0; i < MQ.size(); i++)
     {
-        if (i.name == pubname)
+        if (MQ[i].name == pubname)
         {
-            if (i.pubnode != nullptr)
+            flag = 1;
+            if (MQ[i].pubnode != -1)
             {
-                flag = -1;
-                cout << "xxxpubname " << pubname << " exsist" << endl;
+                cout << "xxx exsist pubname in nodename " << MQ[i].name << endl;
                 return;
             }
             else
             {
-                i.pubnode = &nodes[index];
-                flag = 1;
+                MQ[i].pubnode = index;
+                return;
             }
-            break;
+            
         }
     }
     if (flag == 0)
     {
         MessageQueue mq;
-        mq.pubnode = &nodes[index];
         mq.name = pubname;
+        mq.pubnode = index;
         MQ.push_back(mq);
     }
     nodes[index].pub_list.push_back(pubname);
     cout << "+++add a fabu " << pubname << " to " << nodename << endl;
+    ShowMQ();
     return;
 }
 
 void Master::ShowMQ() {
+    cout << "---------------------------" << endl;
     for (auto i : MQ)
     {
         cout << "消息[" << i.name << "]" << endl;
         cout << "发布节点：";
-        if (i.pubnode != nullptr)
-            cout << i.pubnode->name << endl;
+        if (i.pubnode != -1)
+            cout << nodes[i.pubnode].name << endl;
         else
             cout << "---" << endl;
-        cout << "订阅节点：";
-        for (auto j : i.subnodelist)
+        cout << "订阅节点：" ;
+        for (auto& j : i.subnodelist)
         {
-            cout << j->name << " ";
+            cout << nodes[j].name << " ";
         }
         cout << endl;
     }
+    cout << "---------------------------" << endl;
 }
 
 void Master::ShowNodes() {
@@ -168,20 +164,6 @@ void Master::ShowNodes() {
             cout << j << " ";
         }
         cout << endl;
-    }
-}
-
-void Master::ShowOneNode(Node *i) {
-    cout << "[" << i->name << "]" << endl;
-    cout << "[" << i->ip << " : " << i->port << "]" << endl;
-    cout << i->pub_list.size() << endl;
-    for (auto j : i->pub_list)
-    {
-        cout << j << endl;
-    }
-    for (auto j : i->sub_list)
-    {
-        cout << j << endl;
     }
 }
 

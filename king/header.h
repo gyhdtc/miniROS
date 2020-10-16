@@ -9,6 +9,7 @@
 #include <thread>
 #include <csignal>
 #include <vector>
+#include <map>
 #define DEBUG 0
 #define REG to_string(1)
 #define SUB to_string(2)
@@ -40,6 +41,7 @@ void SigThread(int sig) {
 }
 
 struct Node {
+    int index;
     int port;
     string ip;
     string name;
@@ -48,7 +50,7 @@ struct Node {
 };
 
 struct MessageQueue {
-    Node *pubnode = nullptr;
+    int pubnode = -1;
     string name;
-    vector<Node *> subnodelist;
+    vector<int> subnodelist;
 };

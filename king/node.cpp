@@ -37,11 +37,13 @@ int main()
     node1.Reg(port, ip, master_port, master_ip, name);
     //sleep(3);
     node1.Sub("result");
-    //sleep(3);
+    node1.Sub("blue");
+    node1.Sub("blue2");
     node1.Pub("blue");
-    cout << "shit" << endl;
-    signal(SIGINT, SigThread);
 
-    while (keepRunning);
+    cout << "shit" << endl;
+    //signal(SIGINT, SigThread);
+
+    //while (keepRunning);
     return 0;
 }

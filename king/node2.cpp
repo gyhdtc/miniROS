@@ -35,13 +35,12 @@ int main()
     char *master_ip = (char *)"127.0.0.1";
 
     node1.Reg(port, ip, master_port, master_ip, name);
-    //sleep(3);
+    node1.Sub("result");
     node1.Sub("blue");
-    //sleep(3);
-    node1.Pub("result");
-    cout << "shit" << endl;
-    signal(SIGINT, SigThread);
+    node1.Pub("blue2");
+    
+    //signal(SIGINT, SigThread);
 
-    while (keepRunning);
+    //while (keepRunning);
     return 0;
 }
