@@ -14,9 +14,9 @@ class Master : public Server {
         void PushNode(string, string, int);
         void AddSub(string, string);
         void AddPub(string, string);
+        void GetData(string, vector<int>);
         void ShowMQ();
         void ShowNodes();
-        void ShowOneNode(Node *);
         
         void CreateServer();
         void WaitForConnect();
@@ -49,7 +49,7 @@ void Master::AddSub(string nodename, string subname) {
     int index = name2index.count(nodename) > 0 ? name2index[nodename]: -1;
     if (index == -1)
     {
-        cout << "no node" << endl;
+        cout << "no node " << nodename << endl;
         return;
     }
     for (auto i : nodes[index].sub_list)
@@ -85,7 +85,7 @@ void Master::AddPub(string nodename, string pubname) {
     int index = name2index.count(nodename) > 0 ? name2index[nodename]: -1;
     if (index == -1)
     {
-        cout << "no node" << endl;
+        cout << "no node " << nodename << endl;
         return;
     }
     for (auto i : nodes[index].pub_list)
@@ -126,23 +126,48 @@ void Master::AddPub(string nodename, string pubname) {
     ShowMQ();
     return;
 }
-
+void Master::GetData(string nodename, vector<int> s) {
+    int index;
+    for (int i = 0; i < MQ.size(); i++)
+    {
+        if (nodes[MQ[i].pubnode].name == nodename)
+        {
+            index = i;
+            break;
+        }
+    }
+    for (auto i : s)
+    {
+        MQ[index].data.push(i);
+    }
+}
 void Master::ShowMQ() {
     cout << "---------------------------" << endl;
     for (auto i : MQ)
     {
         cout << "消息[" << i.name << "]" << endl;
+        
         cout << "发布节点：";
         if (i.pubnode != -1)
             cout << nodes[i.pubnode].name << endl;
         else
             cout << "---" << endl;
-        cout << "订阅节点：" ;
+        
+        cout << "订阅节点：";
         for (auto& j : i.subnodelist)
         {
             cout << nodes[j].name << " ";
         }
         cout << endl;
+
+        cout << "数据：" << endl;
+        int myqueue_size = i.data.size();
+        for(int k = 0; k < myqueue_size; k++)
+        {
+            cout << i.data.front() << endl;
+            i.data.push(i.data.front());
+            i.data.pop();
+        }
     }
     cout << "---------------------------" << endl;
 }

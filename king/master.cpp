@@ -94,7 +94,42 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
         }
         m->AddPub(nodename, pubname);
         break;
-    }   
+    }
+    case '4':
+    {
+        cout << "data" << endl;
+        string nodename;
+        vector<int> s;
+        int flag = 0;
+        int i, j;
+        for (i = 0; i < size; i++)
+        {
+            if (buffer[i] == ':') break;
+        }
+        for (j = 0; j < size; j++)
+        {
+            if (buffer[j] == ';') break;
+        }
+        i += 1;
+        char *c = new char[j-i];
+        strncpy(c, buffer+i, j-i);
+        nodename = (string)c;
+        delete []c;
+        i = j+1;
+        for (; j < size; j++)
+        {
+            if (buffer[j] == ',')
+            {
+                char *d = new char[j-i];
+                strncpy(d, buffer+i, j-i);
+                s.push_back(atoi(d));
+                delete []d;
+            }
+        }
+
+        m->GetData(nodename, s);
+        break;
+    }
     default:
     {
         cout << "error data" << endl;
@@ -124,12 +159,7 @@ int main()
     StartServer(&master);
 
     signal(SIGINT, SigThread);
-    while (keepRunning)
-    {
-        sleep(5);
-        //master.ShowNodes();
-        //sleep(1);
-        master.ShowMQ();
-    }
+    while (keepRunning);
+    master.ShowMQ();
     return 0;
 }

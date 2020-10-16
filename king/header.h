@@ -10,10 +10,12 @@
 #include <csignal>
 #include <vector>
 #include <map>
+#include <queue>
 #define DEBUG 0
 #define REG to_string(1)
 #define SUB to_string(2)
 #define PUB to_string(3)
+#define DATA to_string(4)
 using namespace std;
 
 class Master;
@@ -53,4 +55,5 @@ struct MessageQueue {
     int pubnode = -1;
     string name;
     vector<int> subnodelist;
+    queue<int> data;
 };
