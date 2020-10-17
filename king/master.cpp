@@ -123,6 +123,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 char *d = new char[j-i+1];
                 mystrncpy(d, buffer+i, j-i);
                 s.push_back(atoi(d));
+                i = j + 1;
             }
         }
         m->GetData(nodename, s);

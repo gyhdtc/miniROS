@@ -137,9 +137,9 @@ void Master::GetData(string nodename, vector<int> s) {
             break;
         }
     }
-    for (auto i : s)
+    for (int i = 0; i < s.size(); i++)
     {
-        MQ[index].data.push(i);
+        MQ[index].data.push(s[i]);
     }
 }
 void Master::ShowMQ() {
@@ -165,10 +165,11 @@ void Master::ShowMQ() {
         int myqueue_size = i.data.size();
         for(int k = 0; k < myqueue_size; k++)
         {
-            cout << i.data.front() << endl;
+            cout << i.data.front() << " ";
             i.data.push(i.data.front());
             i.data.pop();
         }
+        cout << endl;
     }
     cout << "---------------------------" << endl;
 }

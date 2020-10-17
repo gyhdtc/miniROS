@@ -35,15 +35,10 @@ int main()
     char *master_ip = (char *)"127.0.0.1";
 
     node1.Reg(port, ip, master_port, master_ip, name);
-    sleep(1);
     node1.Sub("result");
-    sleep(1);
-    node1.Sub("blue");
-    sleep(1);
     node1.Sub("blue2");
-    sleep(1);
     node1.Pub("blue");
-    sleep(1);
+    
     vector<int> a = {1,2,3,4,5};
     node1.Data(a);
     
