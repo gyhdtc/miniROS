@@ -45,6 +45,7 @@ void Master::PushNode(string nodename, string ip, int port) {
     return;
 }
 void Master::AddSub(string nodename, string subname) {
+    cout << "收：" << nodename << " " << subname << endl;
     int flag = 0;
     int index = name2index.count(nodename) > 0 ? name2index[nodename]: -1;
     if (index == -1)

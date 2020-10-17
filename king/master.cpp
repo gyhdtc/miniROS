@@ -25,8 +25,8 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                     if (buffer[j] == ';')
                     {
                         flag ++;
-                        char *c = new char[j-i];
-                        strncpy(c, buffer+i, j-i);
+                        char *c = new char[j-i+1];
+                        mystrncpy(c, buffer+i, j-i);
                         if (flag == 1) nodename = (string)c;
                         if (flag == 2) ip = (string)c;
                         if (flag == 3) port = atoi(c);
@@ -54,10 +54,11 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                     if (buffer[j] == ';')
                     {
                         flag ++;
-                        char *c = new char[j-i];
-                        strncpy(c, buffer+i, j-i);
+                        char *c = new char[j-i+1];
+                        mystrncpy(c, buffer+i, j-i); 
                         if (flag == 1) nodename = (string)c;
                         if (flag == 2) subname = (string)c;
+                        
                         delete []c;
                         break;
                     }                      
@@ -82,8 +83,8 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                     if (buffer[j] == ';')
                     {
                         flag ++;
-                        char *c = new char[j-i];
-                        strncpy(c, buffer+i, j-i);
+                        char *c = new char[j-i+1];
+                        mystrncpy(c, buffer+i, j-i);
                         if (flag == 1) nodename = (string)c;
                         if (flag == 2) pubname = (string)c;
                         delete []c;
@@ -111,22 +112,19 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
             if (buffer[j] == ';') break;
         }
         i += 1;
-        char *c = new char[j-i];
-        strncpy(c, buffer+i, j-i);
+        char *c = new char[j-i+1];
+        mystrncpy(c, buffer+i, j-i);
         nodename = (string)c;
-        delete []c;
         i = j+1;
         for (; j < size; j++)
         {
             if (buffer[j] == ',')
             {
-                char *d = new char[j-i];
-                strncpy(d, buffer+i, j-i);
+                char *d = new char[j-i+1];
+                mystrncpy(d, buffer+i, j-i);
                 s.push_back(atoi(d));
-                delete []d;
             }
         }
-
         m->GetData(nodename, s);
         break;
     }

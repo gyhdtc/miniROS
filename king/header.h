@@ -11,6 +11,7 @@
 #include <vector>
 #include <map>
 #include <queue>
+#include <algorithm>
 #define DEBUG 0
 #define REG to_string(1)
 #define SUB to_string(2)
@@ -57,3 +58,9 @@ struct MessageQueue {
     vector<int> subnodelist;
     queue<int> data;
 };
+
+char * mystrncpy(char *dest, const char *src, int n) {
+    strncpy(dest, src, n);
+    dest[n] = '\0';
+    return dest;
+}
