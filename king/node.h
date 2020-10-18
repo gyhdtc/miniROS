@@ -20,7 +20,7 @@ class RosNode : public Server {
         string RegT();
         void Sub(string);
         void Pub(string);
-        void Data(vector<int>);
+        void Data(string, vector<int>);
 
         void CreateClient(string);
 
@@ -50,13 +50,13 @@ void RosNode::Pub(string s) {
     node.pub_list.push_back(s);
     CreateClient(PUB+"[name:"+node.name+";pub:"+s+";]");
 }
-void RosNode::Data(vector<int> x) {
+void RosNode::Data(string pubname, vector<int> x) {
     string s;
     for (auto i : x)
     {
         s += to_string(i) + ',';
     }
-    CreateClient(DATA+"[name:"+node.name+";"+s+"]");
+    CreateClient(DATA+"[name:"+node.name+";pub:"+pubname+";"+s+"]");
 }
 void RosNode::CreateClient(string text) {
     Client client(master_port, master_ip, _cf, text);

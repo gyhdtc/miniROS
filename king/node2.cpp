@@ -27,7 +27,7 @@ int main()
 {
     string name = "gyh2";
     int port = 8890;
-    char *ip = (char *)"127.0.0.1";
+    char *ip = (char *)"0.0.0.0";
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&node1);
     
@@ -35,12 +35,11 @@ int main()
     char *master_ip = (char *)"127.0.0.1";
 
     node1.Reg(port, ip, master_port, master_ip, name);
-    node1.Sub("result");
     node1.Sub("blue");
-    node1.Pub("blue2");
+    node1.Sub("blue2");
     
-    //signal(SIGINT, SigThread);
+    signal(SIGINT, SigThread);
 
-    //while (keepRunning);
+    while (keepRunning);
     return 0;
 }

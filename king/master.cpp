@@ -1,5 +1,5 @@
 #include "master.h"
-#include "client.h"
+
 
 void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     /* rewrite */
@@ -99,23 +99,31 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     case '4':
     {
         cout << "data" << endl;
-        string nodename;
+        string nodename, pubname;
         vector<int> s;
         int flag = 0;
         int i, j;
         for (i = 0; i < size; i++)
         {
-            if (buffer[i] == ':') break;
+            if (buffer[i] == ':')
+            {
+                i += 1;
+                for (j = i; j < size; j++)
+                {
+                    if (buffer[j] == ';')
+                    {
+                        flag ++;
+                        char *c = new char[j-i+1];
+                        mystrncpy(c, buffer+i, j-i);
+                        if (flag == 1) nodename = (string)c;
+                        if (flag == 2) pubname = (string)c;
+                        delete []c;
+                        break;
+                    }                      
+                }
+            }
         }
-        for (j = 0; j < size; j++)
-        {
-            if (buffer[j] == ';') break;
-        }
-        i += 1;
-        char *c = new char[j-i+1];
-        mystrncpy(c, buffer+i, j-i);
-        nodename = (string)c;
-        i = j+1;
+        i = j + 1;
         for (; j < size; j++)
         {
             if (buffer[j] == ',')
@@ -126,7 +134,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 i = j + 1;
             }
         }
-        m->GetData(nodename, s);
+        m->GetData(nodename, pubname, s);
         break;
     }
     default:
@@ -144,9 +152,11 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     close(*fd);
 }
 
-void MyClientCallBack(int *socket_fd) {
+void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
-
+    char *t = new char(s.length()+1);
+    strcpy(t, s.c_str());
+    write(*socket_fd, t, s.length());
     /* rewrite */
 }
 
@@ -154,7 +164,7 @@ int main()
 {
     int port = 8888;
     string ip = "0.0.0.0";
-    Master master(port, ip, MyServerCallBack);
+    Master master(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&master);
 
     signal(SIGINT, SigThread);

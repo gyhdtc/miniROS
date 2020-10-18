@@ -3,6 +3,7 @@
 #include "header.h"
 #endif
 #include "server.h"
+#include "client.h"
 
 class Master : public Server {
     public:
@@ -10,21 +11,23 @@ class Master : public Server {
         vector<Node> nodes;
         vector<MessageQueue> MQ;
         ServerCallBack _sf;
+        ClientCallBack _cf;
     public:
         void PushNode(string, string, int);
         void AddSub(string, string);
         void AddPub(string, string);
-        void GetData(string, vector<int>);
+        void GetData(string, string, vector<int>);
         void ShowMQ();
         void ShowNodes();
         
         void CreateServer();
         void WaitForConnect();
-        
+        void CreateClient(char *, int, string);
+
         static void ServerHandler(int *, struct sockaddr_in *, Master *);
 
-        Master(int port, char *ip, ServerCallBack cb) : Server(port, ip), _sf(cb) {};
-        Master(int port, string ip, ServerCallBack cb) : Server(port, ip), _sf(cb) {};
+        Master(int port, char *ip, ServerCallBack cb, ClientCallBack cf) : Server(port, ip), _sf(cb), _cf(cf) {};
+        Master(int port, string ip, ServerCallBack cb, ClientCallBack cf) : Server(port, ip), _sf(cb), _cf(cf) {};
         ~Master();
 };
 
@@ -124,14 +127,13 @@ void Master::AddPub(string nodename, string pubname) {
     }
     nodes[index].pub_list.push_back(pubname);
     cout << "+++add a fabu " << pubname << " to " << nodename << endl;
-    ShowMQ();
     return;
 }
-void Master::GetData(string nodename, vector<int> s) {
+void Master::GetData(string nodename, string pubname, vector<int> s) {
     int index;
     for (int i = 0; i < MQ.size(); i++)
     {
-        if (nodes[MQ[i].pubnode].name == nodename)
+        if (nodes[MQ[i].pubnode].name == nodename && MQ[i].name == pubname)
         {
             index = i;
             break;
@@ -233,14 +235,56 @@ void Master::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
     close(*fd);
 }
 
+void Master::CreateClient(char * ip, int port, string text) {
+    Client client(port, ip, _cf, text);
+    client.ClientInit();
+    client.ClientBindIpAndPort();
+}
 void shit(Master *m) {
     m->CreateServer();
     m->WaitForConnect();
 }
+void shit3(Master *m, int index) {
+    while(!m->MQ[index].data.empty())
+    {
+        int x = m->MQ[index].data.front();
+        m->MQ[index].data.pop();
+        for (int i = 0; i < m->MQ[index].subnodelist.size(); i++)
+        {
+            int nodeindex = m->MQ[index].subnodelist[i];
+            int port = m->nodes[nodeindex].port;
+            string ip = m->nodes[nodeindex].ip;
+            char *c = new char[ip.size()+1];
+            mystrncpy(c, ip.c_str(), ip.size());
+            m->CreateClient(c, port, to_string(x));
+            cout << x << endl;
+            delete []c;
+        }
+    }
+    m->MQ[index].flag = false;
+}
+
+void shit2(Master *m) {
+    while (1)
+    {
+        for (int i = 0; i < m->MQ.size(); i++)
+        {
+            if (m->MQ[i].flag != true && !m->MQ[i].data.empty() && m->MQ[i].subnodelist.size() != 0)
+            {
+                m->MQ[i].flag = true;
+                thread t(shit3, m, i);
+                t.detach();
+            }
+        }
+    }
+    
+}
 
 void StartServer(Master *m) {
-    thread t(shit, m);
-    t.detach();
+    thread t1(shit, m);
+    t1.detach();
+    thread t2(shit2, m);
+    t2.detach();
 }
 
 Master::~Master() {
