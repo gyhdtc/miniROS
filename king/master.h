@@ -133,8 +133,9 @@ void Master::GetData(string nodename, string pubname, vector<int> s) {
     int index;
     for (int i = 0; i < MQ.size(); i++)
     {
-        if (nodes[MQ[i].pubnode].name == nodename && MQ[i].name == pubname)
+        if (nodes[MQ[i].pubnode].name == nodename && MQ[i].name == pubname && MQ[i].savedataflag == false)
         {
+            MQ[i].savedataflag = true;
             index = i;
             break;
         }
@@ -143,6 +144,7 @@ void Master::GetData(string nodename, string pubname, vector<int> s) {
     {
         MQ[index].data.push(s[i]);
     }
+    MQ[index].savedataflag = false;
 }
 void Master::ShowMQ() {
     cout << "---------------------------" << endl;
