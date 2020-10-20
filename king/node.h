@@ -32,7 +32,7 @@ class RosNode : public Server {
 };
 
 string RosNode::RegT() {
-    return REG + "[name:" + node.name + ";ip:" + node.ip + ";port:" + to_string(node.port) + ";]";
+    return to_string(rand()%2) + "[name:" + node.name + ";ip:" + node.ip + ";port:" + to_string(node.port) + ";]";
 }
 void RosNode::Reg(int port, char *ip, int mport, char *mip, string name) {
     node.ip = ip;

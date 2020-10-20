@@ -30,8 +30,8 @@ void MyClientCallBack(int *socket_fd, string s) {
 
 int main()
 {
-    string name = "gyh2";
-    int port = 8890;
+    string name = "gyh3";
+    int port = 8891;
     char *ip = (char *)"0.0.0.0";
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&node1);
@@ -40,19 +40,8 @@ int main()
     char *master_ip = (char *)"127.0.0.1";
 
     node1.Reg(port, ip, master_port, master_ip, name);
-    node1.Pub("shit1");
-    node1.Pub("shit2");
-    node1.Pub("shit3");
-    node1.Pub("shit4");
-    node1.Pub("shit5");
-    node1.Pub("shit6");
-    node1.Pub("shit7");
-    node1.Pub("shit8");
-    node1.Pub("shit9");
-    node1.Pub("shit10");
-    
-    // vector<int> b = {6,7,8,9,10};
-    // node1.Data("blue2", b);
+    node1.Sub("blue");
+    node1.Sub("blue2");
     
     signal(SIGINT, SigThread);
 

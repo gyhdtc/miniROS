@@ -12,7 +12,7 @@
 #include <map>
 #include <queue>
 #include <algorithm>
-#define DEBUG 0
+#define DEBUG 1
 #define REG to_string(1)
 #define SUB to_string(2)
 #define PUB to_string(3)

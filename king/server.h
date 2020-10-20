@@ -21,7 +21,6 @@ class Server {
 };
 
 void Server::ServerInit() {
-    if (DEBUG) cout << "1.3";
     signal(SIGINT, SigThread);
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1)
@@ -38,7 +37,6 @@ void Server::ServerInit() {
 }
 
 void Server::ServerBindIpAndPort() {
-    if (DEBUG) cout << "1.4";
     int res = bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr));
     if (res == -1)
     {
@@ -49,22 +47,18 @@ void Server::ServerBindIpAndPort() {
 }
 
 Server::Server(int port, string s) {
-    if (DEBUG) cout << "1.5";
     this->_port = port;
-    
     char *ip = new char[s.length()+1];
     strcpy(ip, s.c_str());
     this->_ip = ip;
 }
 
 Server::Server() {
-    if (DEBUG) cout << "1.6";
     this->_port = 8888;
     this->_ip = (char*)"0.0.0.0";
 }
 
 Server::~Server() {
-    if (DEBUG) cout << "1.7";
     close(socket_fd);
     cout << "close server" << endl;
 }

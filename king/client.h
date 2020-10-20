@@ -43,6 +43,7 @@ void Client::ClientBindIpAndPort() {
         return;
     }
     cout<<"client bind success" << endl;
+    usleep(1000*(rand()%10));
     thread t(_cf, &this->socket_fd, text);
     t.join();
 }
