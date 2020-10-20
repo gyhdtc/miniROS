@@ -51,8 +51,18 @@ int main()
     node1.Sub("blue9");
     node1.Sub("blue10");
     
+    node1.Sub("blue1");
+    node1.Sub("blue2");
+    node1.Sub("blue3");
+    node1.Sub("blue4");
+    node1.Sub("blue5");
+    node1.Sub("blue6");
+    node1.Sub("blue7");
+    node1.Sub("blue8");
+    node1.Sub("blue9");
+    node1.Sub("blue10");
     // vector<int> a = {1,2,3,4,5};
-    // node1.Data("blue", a);
+    // node1.Data("blue1", a);
     
     signal(SIGINT, SigThread);
 
