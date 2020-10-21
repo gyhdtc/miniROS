@@ -17,14 +17,21 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
 
 void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
+    if (DEBUG) cout << "5" << endl;
     char flag[1] = {'\0'};
+    int x = 0;
     while (*flag != '#')
     {
+        if (DEBUG) cout << "#1" << endl;
         char *t = new char(s.length()+1);
         strcpy(t, s.c_str());
+        if (DEBUG) cout << "#2" << t << endl;
         write(*socket_fd, t, s.length());
+        if (DEBUG) cout << "#3" << endl;
         read(*socket_fd, flag, 1);
+        if (DEBUG) cout << "#4" << flag << endl;
     }
+    if (DEBUG) cout << "6" << endl;
     /* rewrite */
 }
 
@@ -50,7 +57,8 @@ int main()
     node1.Sub("blue8");
     node1.Sub("blue9");
     node1.Sub("blue10");
-    
+    // vector<int> a = {1,2,3,4,5};
+    // node1.Data("blue1", a);
     node1.Sub("blue1");
     node1.Sub("blue2");
     node1.Sub("blue3");
@@ -61,9 +69,6 @@ int main()
     node1.Sub("blue8");
     node1.Sub("blue9");
     node1.Sub("blue10");
-    // vector<int> a = {1,2,3,4,5};
-    // node1.Data("blue1", a);
-    
     signal(SIGINT, SigThread);
 
     while (keepRunning);

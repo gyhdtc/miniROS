@@ -8,8 +8,11 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     char buffer[255]={};
     int dataflag = 0;
     int size = 0;
-    while((size = read(*fd, buffer, sizeof(buffer))) > 0 && dataflag == 0)
+    while(dataflag == 0)
     {
+        size = read(*fd, buffer, sizeof(buffer));
+        if (size == -1 || size == 0) break;
+        if (DEBUG) cout << "*1" << endl;
         cout << buffer << endl;
         switch (buffer[0])
         {
@@ -155,10 +158,10 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
             cout << "error data...reload..." << endl;
             write(*fd, endflag+1, 1);
             dataflag = 0;
+            if (DEBUG) cout << "*2" << endl;
             break;
         }
         }
-
     }
     /* rewrite */
     close(*fd);

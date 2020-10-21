@@ -7,6 +7,7 @@
 
 class RosNode : public Server {
     private:
+        mutex nodelock;
         Node node;
         NodeCallBack _sf;
         ClientCallBack _cf;
@@ -43,12 +44,16 @@ void RosNode::Reg(int port, char *ip, int mport, char *mip, string name) {
     CreateClient(RegT());
 }
 void RosNode::Sub(string s) {
+    nodelock.try_lock();
     node.sub_list.push_back(s);
     CreateClient(SUB+"[name:"+node.name+";sub:"+s+";]");
+    nodelock.unlock();
 }
 void RosNode::Pub(string s) {
+    nodelock.try_lock();
     node.pub_list.push_back(s);
     CreateClient(PUB+"[name:"+node.name+";pub:"+s+";]");
+    nodelock.unlock();
 }
 void RosNode::Data(string pubname, vector<int> x) {
     string s;

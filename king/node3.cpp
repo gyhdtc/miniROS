@@ -41,15 +41,15 @@ int main()
 
     node1.Reg(port, ip, master_port, master_ip, name);
     for (int i = 0; i < 40; i++) node1.Sub("blue"+to_string(i));
-    // node1.Sub("shit2");
-    // node1.Sub("shit3");
-    // node1.Sub("shit4");
-    // node1.Sub("shit5");
-    // node1.Sub("shit6");
-    // node1.Sub("shit7");
-    // node1.Sub("shit8");
-    // node1.Sub("shit9");
-    // node1.Sub("shit10");
+    node1.Sub("shit2");
+    node1.Sub("shit3");
+    node1.Sub("shit4");
+    node1.Sub("shit5");
+    node1.Sub("shit6");
+    node1.Sub("shit7");
+    node1.Sub("shit8");
+    node1.Sub("shit9");
+    node1.Sub("shit10");
     
     signal(SIGINT, SigThread);
 

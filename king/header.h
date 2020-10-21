@@ -7,12 +7,13 @@
 #include <unistd.h>
 #include <iostream>
 #include <thread>
+#include <mutex>
 #include <csignal>
 #include <vector>
 #include <map>
 #include <queue>
 #include <algorithm>
-#define DEBUG 1
+#define DEBUG 0
 #define REG to_string(1)
 #define SUB to_string(2)
 #define PUB to_string(3)

@@ -7,6 +7,8 @@
 
 class Master : public Server {
     public:
+        mutex mqlock;
+        mutex nodelock;
         int num_mq = 0;
         int num_node = 0;
         map<string, int> name2index;
@@ -34,20 +36,20 @@ class Master : public Server {
 };
 
 void Master::AddNode(string nodename, string ip, int port) {
+    nodelock.try_lock();
     if (name2index.count(nodename) != 0)
     {
         cout << "exsist node" << endl;
         return;
     }
-    Node n;
-    n.name = nodename;
-    n.ip = ip;
-    n.port = port;
-    n.index = nodes.size();
-    nodes.push_back(n);
-    name2index[n.name] = n.index;
-    if (DEBUG) printf("+++ add a node [%s]\n", n.name.c_str());
-    return;
+    nodes[num_node].name = nodename;
+    nodes[num_node].ip = ip;
+    nodes[num_node].port = port;
+    nodes[num_node].index = num_node;
+    name2index[nodename] = num_node;
+    num_node++;
+    if (DEBUG) printf("+++ add a node [%s]\n", nodename.c_str());
+    nodelock.unlock();
 }
 void Master::AddSub(string nodename, string subname) {
     int flag = 0;
@@ -56,12 +58,18 @@ void Master::AddSub(string nodename, string subname) {
     {
         cout << "no node " << nodename << endl;
         return;
+    } else
+    {
+        nodelock.try_lock();
+        mqlock.try_lock();
     }
+    
     for (auto i : nodes[index].sub_list)
     {
         if (i == subname)
         {
             cout << "exsist subname of " << subname << endl;
+            mqlock.unlock();
             return;
         }
     }
@@ -76,14 +84,14 @@ void Master::AddSub(string nodename, string subname) {
     }
     if (flag != 1)
     {
-        // MessageQueue mq;
         MQ[num_mq].name = subname;
         MQ[num_mq].subnodelist.push_back(index);
         num_mq++;
     }
     nodes[index].sub_list.push_back(subname);
     if (DEBUG) printf("+++ add a sub [%s] to [%s]\n", subname.c_str(), nodename.c_str());
-    return;
+    nodelock.unlock();
+    mqlock.unlock();
 }
 void Master::AddPub(string nodename, string pubname) {
     int flag = 0;
@@ -92,12 +100,19 @@ void Master::AddPub(string nodename, string pubname) {
     {
         cout << "no node " << nodename << endl;
         return;
+    } else
+    {
+        nodelock.try_lock();
+        mqlock.try_lock();
     }
+
     for (auto i : nodes[index].pub_list)
     {
         if (i == pubname)
         {
             cout << "exsist pubname of " << pubname << endl;
+            
+            mqlock.unlock();
             return;
         }
     }
@@ -109,11 +124,15 @@ void Master::AddPub(string nodename, string pubname) {
             if (MQ[i].pubnode != -1)
             {
                 cout << "exsist pubname in nodename " << MQ[i].name << endl;
+                
+                mqlock.unlock();
                 return;
             }
             else
             {
                 MQ[i].pubnode = index;
+                
+                mqlock.unlock();
                 return;
             }
             
@@ -121,14 +140,14 @@ void Master::AddPub(string nodename, string pubname) {
     }
     if (flag == 0)
     {
-        // MessageQueue mq;
         MQ[num_mq].name = pubname;
         MQ[num_mq].pubnode = index;
         num_mq++;
     }
     nodes[index].pub_list.push_back(pubname);
     if (DEBUG) printf("+++ add a pub [%s] to [%s]\n", pubname.c_str(), nodename.c_str());
-    return;
+    nodelock.unlock();
+    mqlock.unlock();
 }
 void Master::GetData(string nodename, string pubname, vector<int> s) {
     int index;
@@ -181,18 +200,18 @@ void Master::ShowMQ() {
 
 void Master::ShowNodes() {
     cout << "---------------------------" << endl;
-    for (auto i : nodes)
+    for (int i = 0; i < num_node; i++)
     {
-        cout << "节点[" << i.name << "]" << endl;
-        cout << "[" << i.ip << " : " << i.port << "]" << endl;
+        cout << "节点[" << nodes[i].name << "]" << endl;
+        cout << "[" << nodes[i].ip << " : " << nodes[i].port << "]" << endl;
         cout << "发布消息：";
-        for (auto j : i.pub_list)
+        for (auto j : nodes[i].pub_list)
         {
             cout << j << " ";
         }
         cout << endl;
         cout << "订阅消息：";
-        for (auto j : i.sub_list)
+        for (auto j : nodes[i].sub_list)
         {
             cout << j << " ";
         }
@@ -270,6 +289,7 @@ void shit3(Master *m, int index) {
 
 void StartServer(Master *m) {
     m->MQ.resize(100);
+    m->nodes.resize(100);
     thread t1(shit, m);
     t1.detach();
 }
