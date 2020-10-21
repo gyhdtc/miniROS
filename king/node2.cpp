@@ -40,19 +40,7 @@ int main()
     char *master_ip = (char *)"127.0.0.1";
 
     node1.Reg(port, ip, master_port, master_ip, name);
-    node1.Pub("shit1");
-    node1.Pub("shit2");
-    node1.Pub("shit3");
-    node1.Pub("shit4");
-    node1.Pub("shit5");
-    node1.Pub("shit6");
-    node1.Pub("shit7");
-    node1.Pub("shit8");
-    node1.Pub("shit9");
-    node1.Pub("shit10");
-    
-    // vector<int> b = {6,7,8,9,10};
-    // node1.Data("blue2", b);
+    node1.Sub("blue1");
     
     signal(SIGINT, SigThread);
 

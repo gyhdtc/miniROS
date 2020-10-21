@@ -22,6 +22,8 @@ class RosNode : public Server {
         void Sub(string);
         void Pub(string);
         void Data(string, vector<int>);
+        void Data(string, int);
+        bool FindPublist(string);
 
         void CreateClient(string);
 
@@ -61,7 +63,21 @@ void RosNode::Data(string pubname, vector<int> x) {
     {
         s += to_string(i) + ',';
     }
-    CreateClient(DATA+"[name:"+node.name+";pub:"+pubname+";"+s+"]");
+    if (FindPublist(pubname)) CreateClient(DATA+"[name:"+node.name+";pub:"+pubname+";"+s+"]");
+    else cout << "error pubname..." << endl;
+}
+void RosNode::Data(string pubname, int x) {
+    if (FindPublist(pubname))
+        CreateClient(DATA+"[name:"+node.name+";pub:"+pubname+";"+to_string(x)+",]");
+    else
+        cout << "error pubname..." << endl;
+}
+bool RosNode::FindPublist(string pubname) {
+    for (int i = 0; i < node.pub_list.size(); i++)
+    {
+        if (node.pub_list[i] == pubname) return true;
+    }
+    return false;
 }
 void RosNode::CreateClient(string text) {
     Client client(master_port, master_ip, _cf, text);

@@ -1,6 +1,5 @@
 #include "master.h"
 
-
 void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);

@@ -47,28 +47,8 @@ int main()
     char *master_ip = (char *)"127.0.0.1";
 
     node1.Reg(port, ip, master_port, master_ip, name);
-    node1.Sub("blue1");
-    node1.Sub("blue2");
-    node1.Sub("blue3");
-    node1.Sub("blue4");
-    node1.Sub("blue5");
-    node1.Sub("blue6");
-    node1.Sub("blue7");
-    node1.Sub("blue8");
-    node1.Sub("blue9");
-    node1.Sub("blue10");
-    // vector<int> a = {1,2,3,4,5};
-    // node1.Data("blue1", a);
-    node1.Sub("blue1");
-    node1.Sub("blue2");
-    node1.Sub("blue3");
-    node1.Sub("blue4");
-    node1.Sub("blue5");
-    node1.Sub("blue6");
-    node1.Sub("blue7");
-    node1.Sub("blue8");
-    node1.Sub("blue9");
-    node1.Sub("blue10");
+    node1.Pub("blue1");
+    for (int i = 0; i < 100; i++) node1.Data("blue1", i);
     signal(SIGINT, SigThread);
 
     while (keepRunning);
