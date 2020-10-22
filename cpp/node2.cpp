@@ -3,15 +3,24 @@
 void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
+    char endflag[2] = {'#', '*'};
     char buffer[255]={};
-    int size = read(*fd, buffer, sizeof(buffer));    
-    cout << "内容： " << buffer << endl;
+    int dataflag = 0;
+    int size = 0;
+    while(dataflag == 0)
+    {
+        size = read(*fd, buffer, sizeof(buffer));
+        if (size == -1 || size == 0) 
+        {
+            write(*fd, endflag+1, 1);
+            continue;
+        } else {
+            cout << buffer << endl;
+            write(*fd, endflag, 1);
+            dataflag = 1;
+        }
+    }
     /* rewrite */
-    while
-    (
-        !(read(*fd, buffer, sizeof(buffer)) == 0 
-        || read(*fd, buffer, sizeof(buffer)) == -1)
-    );
     close(*fd);
 }
 

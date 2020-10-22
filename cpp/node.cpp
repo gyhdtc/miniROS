@@ -3,15 +3,24 @@
 void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
+    char endflag[2] = {'#', '*'};
     char buffer[255]={};
-    int size = read(*fd, buffer, sizeof(buffer));    
-    cout << "内容： " << buffer << endl;
+    int dataflag = 0;
+    int size = 0;
+    while(dataflag == 0)
+    {
+        size = read(*fd, buffer, sizeof(buffer));
+        if (size == -1 || size == 0) 
+        {
+            write(*fd, endflag+1, 1);
+            continue;
+        } else {
+            cout << buffer << endl;
+            write(*fd, endflag, 1);
+            dataflag = 1;
+        }
+    }
     /* rewrite */
-    while
-    (
-        !(read(*fd, buffer, sizeof(buffer)) == 0 
-        || read(*fd, buffer, sizeof(buffer)) == -1)
-    );
     close(*fd);
 }
 
@@ -48,7 +57,11 @@ int main()
 
     node1.Reg(port, ip, master_port, master_ip, name);
     node1.Pub("blue1");
-    for (int i = 0; i < 100; i++) node1.Data("blue1", i);
+    for (int i = 0; i < 5; i++) 
+    {
+        for (int j = 0; j < 200; j++)
+            node1.Data("blue1", i*200+j);
+    }
     signal(SIGINT, SigThread);
 
     while (keepRunning);
