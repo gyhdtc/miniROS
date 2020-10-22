@@ -69,6 +69,7 @@ void Master::AddSub(string nodename, string subname) {
         if (i == subname)
         {
             cout << "exsist subname of " << subname << endl;
+            nodelock.unlock();
             mqlock.unlock();
             return;
         }
@@ -111,7 +112,7 @@ void Master::AddPub(string nodename, string pubname) {
         if (i == pubname)
         {
             cout << "exsist pubname of " << pubname << endl;
-            
+            nodelock.unlock();
             mqlock.unlock();
             return;
         }
@@ -124,18 +125,18 @@ void Master::AddPub(string nodename, string pubname) {
             if (MQ[i].pubnode != -1)
             {
                 cout << "exsist pubname in nodename " << MQ[i].name << endl;
-                
+                nodelock.unlock();
                 mqlock.unlock();
                 return;
             }
             else
             {
                 MQ[i].pubnode = index;
-                
+                nodes[index].pub_list.push_back(pubname);
+                nodelock.unlock();
                 mqlock.unlock();
                 return;
             }
-            
         }
     }
     if (flag == 0)
