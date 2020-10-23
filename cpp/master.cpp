@@ -170,6 +170,7 @@ void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
     char flag[1] = {'\0'};
     int x = 0;
+    cout << s << endl;
     while (*flag != '#')
     {
         char *t = new char(s.length()+1);

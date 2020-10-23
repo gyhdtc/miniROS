@@ -41,12 +41,14 @@ int main()
 {
     string name = "gyh3";
     int port = 8891;
-    char *ip = (char *)"49.123.118.159";
+    // char *ip = (char *)"49.123.118.159";
+    char *ip = (char *)"0.0.0.0";
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&node1);
     
     int master_port = 8888;
-    char *master_ip = (char *)"115.157.195.140";
+    // char *master_ip = (char *)"115.157.195.140";
+    char *master_ip = (char *)"127.0.0.1";
 
     node1.Reg(port, ip, master_port, master_ip, name);
     node1.Sub("blue1");

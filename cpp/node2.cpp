@@ -10,7 +10,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
     while(dataflag == 0)
     {
         size = read(*fd, buffer, sizeof(buffer));
-        if (size == -1 || size == 0) 
+        if (size == 0 || size == -1) 
         {
             write(*fd, endflag+1, 1);
             continue;
@@ -27,6 +27,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
 void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
     char flag[1] = {'\0'};
+    int x = 0;
     while (*flag != '#')
     {
         char *t = new char(s.length()+1);
@@ -41,12 +42,14 @@ int main()
 {
     string name = "gyh2";
     int port = 8890;
-    char *ip = (char *)"49.123.118.159";
+    // char *ip = (char *)"49.123.118.159";
+    char *ip = (char *)"0.0.0.0";
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&node1);
     
     int master_port = 8888;
-    char *master_ip = (char *)"115.157.195.140";
+    // char *master_ip = (char *)"115.157.195.140";
+    char *master_ip = (char *)"127.0.0.1";
 
     node1.Reg(port, ip, master_port, master_ip, name);
     node1.Sub("blue1");
