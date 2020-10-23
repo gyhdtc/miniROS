@@ -3,15 +3,24 @@
 void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
+    char endflag[2] = {'#', '*'};
     char buffer[255]={};
-    int size = read(*fd, buffer, sizeof(buffer));    
-    cout << "内容： " << buffer << endl;
+    int dataflag = 0;
+    int size = 0;
+    while(dataflag == 0)
+    {
+        size = read(*fd, buffer, sizeof(buffer));
+        if (size == -1 || size == 0) 
+        {
+            write(*fd, endflag+1, 1);
+            continue;
+        } else {
+            cout << buffer << endl;
+            write(*fd, endflag, 1);
+            dataflag = 1;
+        }
+    }
     /* rewrite */
-    while
-    (
-        !(read(*fd, buffer, sizeof(buffer)) == 0 
-        || read(*fd, buffer, sizeof(buffer)) == -1)
-    );
     close(*fd);
 }
 
@@ -32,24 +41,15 @@ int main()
 {
     string name = "gyh3";
     int port = 8891;
-    char *ip = (char *)"0.0.0.0";
+    char *ip = (char *)"49.123.118.159";
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&node1);
     
     int master_port = 8888;
-    char *master_ip = (char *)"127.0.0.1";
+    char *master_ip = (char *)"115.157.195.140";
 
     node1.Reg(port, ip, master_port, master_ip, name);
-    for (int i = 0; i < 40; i++) node1.Sub("blue"+to_string(i));
-    node1.Sub("shit2");
-    node1.Sub("shit3");
-    node1.Sub("shit4");
-    node1.Sub("shit5");
-    node1.Sub("shit6");
-    node1.Sub("shit7");
-    node1.Sub("shit8");
-    node1.Sub("shit9");
-    node1.Sub("shit10");
+    node1.Sub("blue1");
     
     signal(SIGINT, SigThread);
 

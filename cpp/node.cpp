@@ -48,19 +48,21 @@ int main()
 {
     string name = "gyh1";
     int port = 8889;
-    char *ip = (char *)"0.0.0.0";
+    char *ip = (char *)"49.123.118.159";
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&node1);
     
     int master_port = 8888;
-    char *master_ip = (char *)"127.0.0.1";
+    char *master_ip = (char *)"115.157.195.140";
 
     node1.Reg(port, ip, master_port, master_ip, name);
     node1.Pub("blue1");
-    for (int i = 0; i < 5; i++) 
+    for (int i = 0; i < 25; i++) 
     {
-        for (int j = 0; j < 200; j++)
-            node1.Data("blue1", i*200+j);
+        vector<int> a;
+        for (int j = 0; j < 20; j++)
+            a.push_back(i*20+j);
+        node1.Data("blue1", a);
     }
     signal(SIGINT, SigThread);
 
