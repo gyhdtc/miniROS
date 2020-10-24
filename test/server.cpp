@@ -1,3 +1,32 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <iostream>
+#include <thread>
+#include <csignal>
+#include <algorithm>
+using namespace std;
+
+class Server {
+    public:
+        int _port;
+        char *_ip;
+        int socket_fd;
+        struct sockaddr_in addr;
+        struct sockaddr_in client;
+
+        void ServerInit();
+        void ServerBindIpAndPort();
+        void WaitForConnect();
+        static void ServerHandler(int *, struct sockaddr_in *);
+        Server(int port, char *ip) : _port(port), _ip(ip) {};
+        ~Server();
+};
+
 void Server::ServerInit() {
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1)
@@ -33,35 +62,9 @@ void Server::WaitForConnect() {
             cout << "accept错误\n" << endl;
             exit(-1);
         }
-        thread t1(_pf, &fd, &client, this->m);
+        thread t1(ServerHandler, &fd, &client);
         t1.detach();
     }
-}
-
-Server::Server(int port, string s, ServerCallBack cb, Master *M) {
-    this->_port = port;
-    
-    char *ip = new char[s.length()+1];
-    strcpy(ip, s.c_str());
-    this->_ip = ip;
-
-    this->_pf = cb;
-
-    this->m = M;
-}
-
-Server::Server(ServerCallBack cb, Master *M) {
-    this->_port = 8888;
-    this->_ip = (char*)"127.0.0.1";
-    this->_pf = cb;
-    this->m = M;
-}
-
-Server::Server(Master *M) {
-    this->_port = 8888;
-    this->_ip = (char*)"127.0.0.1";
-    this->_pf = ServerHandler;
-    this->m = M;
 }
 
 Server::~Server() {
@@ -69,20 +72,23 @@ Server::~Server() {
     cout << "close server" << endl;
 }
 
-void Server::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
+void Server::ServerHandler(int *fd, struct sockaddr_in *client) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
     cout << "客户： 【" << ip << "】连接成功" << endl;
-
+    int a = 12345;
+    string s = to_string(a);
+    char *t = new char[s.size()+1];
+    strcpy(t, s.c_str());
+    t[s.size()] = '\0';
+    write(*fd, t, s.size());
     write(*fd, "welcome", 7);
-
-    char buffer[255]={};
+    write(*fd, "#", 1);
+    char buffer[1]={};
 
     int size = read(*fd, buffer, sizeof(buffer));    
     cout << "接收到字节数为： " << size << endl;
     cout << "内容： " << buffer << endl;
-    string name = buffer;
-    m->PushName(name);
     /* rewrite */
 
     while
@@ -93,4 +99,15 @@ void Server::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
     
     cout << "END" << endl;
     close(*fd);
+}
+int main()
+{
+    int port = 8888;
+    char * ip = (char *)"0.0.0.0";
+    Server server(port, ip);
+    server.ServerInit();
+    server.ServerBindIpAndPort();
+    server.WaitForConnect();
+    while (1);
+    return 0;
 }

@@ -1,4 +1,4 @@
-#include "include/node.h"
+#include "include/client.h"
 
 void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
     /* rewrite */
@@ -45,8 +45,7 @@ int main()
     int port = 8889;
     // char *ip = (char *)"49.123.118.159";
     char *ip = (char *)"0.0.0.0";
-    RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
-    StartServer(&node1);
+    
     
     int master_port = 8888;
     // char *master_ip = (char *)"115.157.195.140";

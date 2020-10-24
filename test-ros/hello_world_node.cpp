@@ -29,14 +29,19 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
 
 void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
+    cout << "6" << endl;
     char flag[1] = {'\0'};
     int x = 0;
     while (*flag != '#')
     {
+        cout << "7" << endl;
         char *t = new char(s.length()+1);
         strcpy(t, s.c_str());
         write(*socket_fd, t, s.length());
+        cout << "8" << endl;
         read(*socket_fd, flag, 1);
+        cout << "9" << endl;
+        delete []t;
     }
     /* rewrite */
 }

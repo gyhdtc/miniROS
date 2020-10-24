@@ -170,7 +170,6 @@ void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
     char flag[1] = {'\0'};
     int x = 0;
-    cout << s << endl;
     while (*flag != '#')
     {
         char *t = new char(s.length()+1);
@@ -196,7 +195,7 @@ int main()
             if (master.MQ[i].savedataflag != true && master.MQ[i].flag != true && !master.MQ[i].data.empty() && master.MQ[i].subnodelist.size() != 0)
             {
                 master.MQ[i].flag = true;
-                thread t(shit3, &master, i);
+                thread t(senddata, &master, i);
                 t.detach();
             }
         }

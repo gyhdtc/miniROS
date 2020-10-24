@@ -45,7 +45,6 @@ void Client::Init() {
 }
 
 void Client::BindIpAndPort() {
-    cout << addr.sin_port << endl;
     int res = connect(socket_fd,(struct sockaddr*)&addr,sizeof(addr));
     if(res == -1)
     {
@@ -55,17 +54,18 @@ void Client::BindIpAndPort() {
     }
     cout<<"bind 链接成功："<<endl;
     thread t(ClientHandler, &this->socket_fd);
-    t.detach();
+    t.join();
+    close(socket_fd);
 }
 
 void Client::ClientHandler(int *socket_fd) {
-    write(*socket_fd,"hello hebinbing",15);
-
-    char buffer[255]={};
-    int size = read(*socket_fd, buffer, sizeof(buffer));
-
-    cout << "接收到字节数为： " << size << endl;
-    cout << "内容： " << buffer << endl;
+    char buffer[1]={};
+    sleep(3);
+    while (*buffer != '#')
+    {
+        read(*socket_fd, buffer, sizeof(buffer));
+        cout << buffer << endl;
+    }
 }
 
 Client::Client() {
@@ -89,14 +89,9 @@ int main()
 {
     int cport = 8888;
     string cip = "127.0.0.1";
-    while(1) {
-        Client cshit(cport, cip);
-        cshit.Init();
-        cshit.BindIpAndPort();
-        sleep(3);
-    }
-    
-    //while (keepRunning);
-    
+    Client cshit(cport, cip);
+    cshit.Init();
+    cshit.BindIpAndPort();
+    sleep(3);
     return 0;
 }

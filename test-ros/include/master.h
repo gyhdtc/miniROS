@@ -28,6 +28,8 @@ class Master : public Server {
         void WaitForConnect();
         void CreateClient(char *, int, string);
 
+        static void ServerHandler(int *, struct sockaddr_in *, Master *);
+
         Master(int port, char *ip, ServerCallBack cb, ClientCallBack cf) : Server(port, ip), _sf(cb), _cf(cf) {};
         Master(int port, string ip, ServerCallBack cb, ClientCallBack cf) : Server(port, ip), _sf(cb), _cf(cf) {};
         ~Master();
@@ -239,24 +241,24 @@ void Master::WaitForConnect() {
     }
 }
 
-// void Master::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
-//     char *ip = inet_ntoa(client->sin_addr);
-//     cout << "客户： 【" << ip << "】连接成功" << endl;
-//     write(*fd, "welcome", 7);
-//     char buffer[255]={};
-//     int size = read(*fd, buffer, sizeof(buffer));    
-//     cout << "接收到字节数为： " << size << endl;
-//     cout << "内容： " << buffer << endl;
-//     string name = buffer;
-//     /* rewrite */
-//     while
-//     (
-//         !(read(*fd, buffer, sizeof(buffer)) == 0 
-//         || read(*fd, buffer, sizeof(buffer)) == -1)
-//     );
-//     cout << "END" << endl;
-//     close(*fd);
-// }
+void Master::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
+    char *ip = inet_ntoa(client->sin_addr);
+    cout << "客户： 【" << ip << "】连接成功" << endl;
+    write(*fd, "welcome", 7);
+    char buffer[255]={};
+    int size = read(*fd, buffer, sizeof(buffer));    
+    cout << "接收到字节数为： " << size << endl;
+    cout << "内容： " << buffer << endl;
+    string name = buffer;
+    /* rewrite */
+    while
+    (
+        !(read(*fd, buffer, sizeof(buffer)) == 0 
+        || read(*fd, buffer, sizeof(buffer)) == -1)
+    );
+    cout << "END" << endl;
+    close(*fd);
+}
 
 void Master::CreateClient(char * ip, int port, string text) {
     Client client(port, ip, _cf, text);
@@ -267,7 +269,7 @@ void shit(Master *m) {
     m->CreateServer();
     m->WaitForConnect();
 }
-void senddata(Master *m, int index) {
+void shit3(Master *m, int index) {
     while(!m->MQ[index].data.empty())
     {
         int x = m->MQ[index].data.front();
