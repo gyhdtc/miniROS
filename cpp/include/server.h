@@ -41,7 +41,7 @@ void Server::ServerBindIpAndPort() {
     if (res == -1)
     {
         cout << "server bind false" << endl;
-        exit(-1);
+        exit(1);
     }
     cout << "server bind success" << endl;
 }
