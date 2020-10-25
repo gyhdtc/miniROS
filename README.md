@@ -4,7 +4,7 @@
 3. test-ros：存放连接miniROS和ROS的调试文件。
 
 ## [C++] master
-**Master开启两个线程，一个向外提供Server服务，一个用于遍历消息队列，非空即转发**
+**Master开启两个线程：一个向外提供Server服务；一个用于遍历消息队列，queue非空即转发**
 - master节点是用c++写的，在cpp文件夹下，编译命令：  
 `g++ master.cpp -o ./bin/master --std=c++11 -lpthread`
 - master.cpp文件包括两个回调函数，分别是：  
