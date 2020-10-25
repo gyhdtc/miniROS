@@ -14,9 +14,8 @@
 - master.cpp包含master.h头文件。头文件实现类Master，此类继承于Server类。实例化Master时，也会实例化一个Server，所以创建Master时要提供master的IP和PORT。
 - `master.h`包含`client.h`，在需要数据转发时创建client类，提供目标主机的IP和PORT。还需要一个string类型的test文本参数，作为此client发送出去的数据。
 - `master.h`包含`header.h`。此头文件包含所有标准库文件。  
-定义了类，常量，信号变量`keeprunning`等。同时定了三个函数指针类型：ServerCallBack，NodeCallBack，ClientCallBack。  
-定义了node结构体，包含node创建时的自身信息，同时它也将保存在master中。定义了MessageQueue结构体，表示消息队列，包含消息名字，哪个节点发布的，哪些节点订阅了和**数据queue**。  
-自己写了mystrncpy函数，调用strncpy函数之后在char *结尾补上了结束符。（标准库函数不会自动补）
+(1) 定义了类，常量，信号变量`keeprunning`等。同时定了三个函数指针类型：`ServerCallBack`，`NodeCallBack`，`ClientCallBack`。  
+(2) 定义了**node**结构体，包含**node**创建时的自身信息，同时它也将保存在 master 节点中。定义了**MessageQueue**结构体，表示消息队列，包含消息名字，哪个节点发布的，哪些节点订阅了和**数据queue**。  
+(3) 自己写了`mystrncpy`函数，调用`strncpy`函数之后在`char *`结尾补上了结束符。（标准库函数不会自动补）
 
 ## node
-
