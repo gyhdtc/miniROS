@@ -16,5 +16,6 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "mutex": "cpp"
-    }
+    },
+    "python.pythonPath": "/usr/bin/python"
 }
