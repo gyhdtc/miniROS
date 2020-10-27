@@ -7,6 +7,8 @@ class Client {
     public:
         int _port;
         char *_ip;
+        Master *m;
+        int index;
         ClientCallBack _cf; 
         string text;
         int socket_fd;

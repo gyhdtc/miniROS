@@ -31,8 +31,10 @@ static int keepRunning = 1;
 
 void stest(int *, struct sockaddr_in *, Master *);
 typedef decltype(stest)* ServerCallBack;
+
 void ntest(int *, struct sockaddr_in *, RosNode *);
 typedef decltype(ntest)* NodeCallBack;
+
 void ctest(int *, string);
 typedef decltype(ctest)* ClientCallBack;
 

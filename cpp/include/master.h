@@ -196,7 +196,6 @@ void Master::ShowMQ() {
     }
     cout << "-----------" << num_mq << "----------------" << endl;
 }
-
 void Master::ShowNodes() {
     cout << "---------------------------" << endl;
     for (int i = 0; i < num_node; i++)
@@ -218,12 +217,10 @@ void Master::ShowNodes() {
     }
     cout << "---------------------------" << endl;
 }
-
 void Master::CreateServer() {
     this->ServerInit();
     this->ServerBindIpAndPort();
 }
-
 void Master::WaitForConnect() {
     listen(socket_fd,30);
     socklen_t len = sizeof(client);
@@ -258,8 +255,8 @@ void Master::WaitForConnect() {
 //     close(*fd);
 // }
 
-void Master::CreateClient(char * ip, int port, string text) {
-    Client client(port, ip, _cf, text);
+void Master::CreateClient(char * ip, int port, string s) {
+    Client client(port, ip, _cf, s);
     client.ClientInit();
     client.ClientBindIpAndPort();
 }
@@ -271,17 +268,18 @@ void senddata(Master *m, int index) {
     while(!m->MQ[index].data.empty())
     {
         int x = m->MQ[index].data.front();
-        m->MQ[index].data.pop();
+        string text = to_string(x);
         for (int i = 0; i < m->MQ[index].subnodelist.size(); i++)
         {
             int nodeindex = m->MQ[index].subnodelist[i];
             int port = m->nodes[nodeindex].port;
             string ip = m->nodes[nodeindex].ip;
-            char *c = new char[ip.size()+1];
-            mystrncpy(c, ip.c_str(), ip.size());
-            m->CreateClient(c, port, to_string(x));
-            delete []c;
+            char *cip = new char[ip.size()+1];
+            mystrncpy(cip, ip.c_str(), ip.size());
+            m->CreateClient(cip, port, text);
+            delete []cip;
         }
+        m->MQ[index].data.pop();
     }
     m->MQ[index].flag = false;
 }

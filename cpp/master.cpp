@@ -3,8 +3,8 @@
 void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
-    char endflag[2] = {'#', '*'};
-    char buffer[255]={};
+    // char endflag[2] = {'#', '*'};
+    char buffer[100]={};
     int dataflag = 0;
     int size = 0;
     while(dataflag == 0)
@@ -43,7 +43,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
             }
             m->AddNode(nodename, ip, port);
-            write(*fd, endflag, 1);
+            // write(*fd, endflag, 1);
             dataflag = 1;
             break;
         }
@@ -74,7 +74,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
             }
             m->AddSub(nodename, subname);
-            write(*fd, endflag, 1);
+            // write(*fd, endflag, 1);
             dataflag = 1;
             break;
         }
@@ -104,7 +104,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
             }
             m->AddPub(nodename, pubname);
-            write(*fd, endflag, 1);
+            // write(*fd, endflag, 1);
             dataflag = 1;
             break;
         }
@@ -148,14 +148,14 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
             }
             m->GetData(nodename, pubname, s);
-            write(*fd, endflag, 1);
+            // write(*fd, endflag, 1);
             dataflag = 1;
             break;
         }
         default:
         {
             cout << "error data...reload..." << endl;
-            write(*fd, endflag+1, 1);
+            // write(*fd, endflag+1, 1);
             dataflag = 0;
             if (DEBUG) cout << "*2" << endl;
             break;
@@ -170,13 +170,13 @@ void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
     char flag[1] = {'\0'};
     int x = 0;
-    while (*flag != '#')
-    {
-        char *t = new char(s.length()+1);
+    //while (*flag != '#')
+    //{
+        char *t = new char[s.length()+1];
         strcpy(t, s.c_str());
         write(*socket_fd, t, s.length());
-        read(*socket_fd, flag, 1);
-    }
+        //read(*socket_fd, flag, 1);
+    //}
     /* rewrite */
 }
 

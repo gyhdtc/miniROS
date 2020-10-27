@@ -58,16 +58,6 @@ void Client::BindIpAndPort() {
     close(socket_fd);
 }
 
-void Client::ClientHandler(int *socket_fd) {
-    char buffer[1]={};
-    sleep(3);
-    while (*buffer != '#')
-    {
-        read(*socket_fd, buffer, sizeof(buffer));
-        cout << buffer << endl;
-    }
-}
-
 Client::Client() {
     this->_port = 8888;
     this->_ip = (char*)"127.0.0.1";
@@ -85,13 +75,28 @@ Client::~Client() {
     cout << "close client" << endl;
 }
 
+void Client::ClientHandler(int *socket_fd) {
+    char buffer[1]={};
+    while (*buffer != '#')
+    {
+        write(*socket_fd, "welcome", 7);
+        read(*socket_fd, buffer, sizeof(buffer));
+        cout << buffer << endl;
+    }
+    //sleep(3);
+}
+
 int main()
 {
-    int cport = 8888;
-    string cip = "127.0.0.1";
-    Client cshit(cport, cip);
-    cshit.Init();
-    cshit.BindIpAndPort();
-    sleep(3);
+    for (int i = 0; i < 1000; i++) {
+        int cport = 8888;
+        string cip = "127.0.0.1";
+        Client cshit(cport, cip);
+        cshit.Init();
+        cshit.BindIpAndPort();
+        cout << i << endl;
+    }
+    
+    //sleep(3);
     return 0;
 }

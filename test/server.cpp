@@ -73,33 +73,28 @@ Server::~Server() {
 }
 
 void Server::ServerHandler(int *fd, struct sockaddr_in *client) {
-    /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
     cout << "客户： 【" << ip << "】连接成功" << endl;
-    int a = 12345;
-    string s = to_string(a);
-    char *t = new char[s.size()+1];
-    strcpy(t, s.c_str());
-    t[s.size()] = '\0';
-    write(*fd, t, s.size());
-    write(*fd, "welcome", 7);
-    write(*fd, "#", 1);
-    char buffer[1]={};
-
-    int size = read(*fd, buffer, sizeof(buffer));    
-    cout << "接收到字节数为： " << size << endl;
-    cout << "内容： " << buffer << endl;
-    /* rewrite */
-
-    while
-    (
-        !(read(*fd, buffer, sizeof(buffer)) == 0 
-        || read(*fd, buffer, sizeof(buffer)) == -1)
-    );
-    
+    // int a = 12345;
+    // string s = to_string(a);
+    // char *t = new char[s.size()+1];
+    // strcpy(t, s.c_str());
+    // t[s.size()] = '\0';
+    // write(*fd, t, s.size());
+    // 
+    // write(*fd, "#", 1);
+    char buffer[10]={};
+    int size = 0;
+    while (!((size = read(*fd, buffer, sizeof(buffer))) <= 0))
+    {
+        cout << "接收到字节数为： " << size << endl;
+        cout << "内容： " << buffer << endl;
+        write(*fd, "#", 1);
+    }
     cout << "END" << endl;
     close(*fd);
 }
+
 int main()
 {
     int port = 8888;
