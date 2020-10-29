@@ -28,7 +28,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 if (buffer[i] == ':')
                 {
                     i += 1;
-                    for (j = i; j < size; j++)
+                    for (j = i; j < size && buffer[j] != ']'; j++)
                     {
                         if (buffer[j] == ';')
                         {
@@ -57,7 +57,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 if (buffer[i] == ':')
                 {
                     i += 1;
-                    for (j = i; j < size; j++)
+                    for (j = i; j < size && buffer[j] != ']'; j++)
                     {
                         if (buffer[j] == ';')
                         {
@@ -85,7 +85,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 if (buffer[i] == ':')
                 {
                     i += 1;
-                    for (j = i; j < size; j++)
+                    for (j = i; j < size && buffer[j] != ']'; j++)
                     {
                         if (buffer[j] == ';')
                         {
@@ -105,7 +105,6 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
         }
         case '4':
         {
-            //cout << "data" << endl;
             string nodename, pubname;
             vector<int> s;
             int flag = 0;
@@ -180,7 +179,7 @@ int main()
     {
         for (int i = 0; i < master.MQ.size(); i++)
         {
-            if (/*master.MQ[i].savedataflag != true && */master.MQ[i].flag == false && !master.MQ[i].data.empty() && master.MQ[i].subnodelist.size() != 0)
+            if (master.MQ[i].flag == false && !master.MQ[i].data.empty() && master.MQ[i].subnodelist.size() != 0)
             {
                 master.MQ[i].flag = true;
                 thread t(senddata, &master, i);

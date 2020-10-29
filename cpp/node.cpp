@@ -13,7 +13,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
 }
 
 void MyClientCallBack(int *socket_fd, string s) {
-    // /* rewrite */
+    /* rewrite */
     char flag[1] = {'\0'};
     int x = 0;
     char *t = new char[s.length()+1];
