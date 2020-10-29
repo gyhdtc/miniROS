@@ -44,8 +44,7 @@ void Client::ClientBindIpAndPort() {
         cout<<"client bind false" << endl;
         return;
     }
-    cout<<"client bind success" << endl;
-    //usleep(1000*(rand()%10));
+    usleep(100*((rand()%50+100)));
     thread t(_cf, &this->socket_fd, text);
     t.join();
 }
@@ -60,5 +59,4 @@ void Client::ClientHandler(int *socket_fd, string s) {
 
 Client::~Client() {
     close(socket_fd);
-    cout << "close client" << endl;
 }

@@ -3,16 +3,18 @@
 void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
     /* rewrite */
     char *ip = inet_ntoa(client->sin_addr);
-    // char endflag[2] = {'#', '*'};
-    char buffer[100]={};
+    char buffer[100];
     int dataflag = 0;
     int size = 0;
-    while(dataflag == 0)
+    while(!((size = read(*fd, buffer, sizeof(buffer))) <= 0))
     {
-        size = read(*fd, buffer, sizeof(buffer));
-        if (size == -1 || size == 0) break;
-        if (DEBUG) cout << "*1" << endl;
+        if (DEBUG) cout << "*1 " << size << endl;
         cout << buffer << endl;
+        if (!(buffer[0] <= '4' && buffer[0] >= '1') && buffer[size-1] != ']')
+        {
+            cout << "error data...reload..." << endl;
+            break;
+        }
         switch (buffer[0])
         {
         case '1':
@@ -43,8 +45,6 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
             }
             m->AddNode(nodename, ip, port);
-            // write(*fd, endflag, 1);
-            dataflag = 1;
             break;
         }
         case '2':
@@ -66,7 +66,6 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                             mystrncpy(c, buffer+i, j-i); 
                             if (flag == 1) nodename = (string)c;
                             if (flag == 2) subname = (string)c;
-                            
                             delete []c;
                             break;
                         }                      
@@ -74,8 +73,6 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
             }
             m->AddSub(nodename, subname);
-            // write(*fd, endflag, 1);
-            dataflag = 1;
             break;
         }
         case '3':
@@ -104,13 +101,11 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
             }
             m->AddPub(nodename, pubname);
-            // write(*fd, endflag, 1);
-            dataflag = 1;
             break;
         }
         case '4':
         {
-            cout << "data" << endl;
+            //cout << "data" << endl;
             string nodename, pubname;
             vector<int> s;
             int flag = 0;
@@ -136,7 +131,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
             }
             i = j + 1;
-            for (; j < size; j++)
+            for (; j < size && buffer[j] != ']'; j++)
             {
                 if (buffer[j] == ',')
                 {
@@ -146,37 +141,30 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                     delete []d;
                     i = j + 1;
                 }
+                
             }
             m->GetData(nodename, pubname, s);
-            // write(*fd, endflag, 1);
-            dataflag = 1;
             break;
         }
         default:
         {
             cout << "error data...reload..." << endl;
-            // write(*fd, endflag+1, 1);
-            dataflag = 0;
             if (DEBUG) cout << "*2" << endl;
             break;
         }
         }
     }
     /* rewrite */
-    close(*fd);
 }
 
 void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
     char flag[1] = {'\0'};
     int x = 0;
-    //while (*flag != '#')
-    //{
-        char *t = new char[s.length()+1];
-        strcpy(t, s.c_str());
-        write(*socket_fd, t, s.length());
-        //read(*socket_fd, flag, 1);
-    //}
+    char *t = new char[s.length()+1];
+    strcpy(t, s.c_str());
+    write(*socket_fd, t, s.length());
+    close(*socket_fd);
     /* rewrite */
 }
 
@@ -192,7 +180,7 @@ int main()
     {
         for (int i = 0; i < master.MQ.size(); i++)
         {
-            if (master.MQ[i].savedataflag != true && master.MQ[i].flag != true && !master.MQ[i].data.empty() && master.MQ[i].subnodelist.size() != 0)
+            if (/*master.MQ[i].savedataflag != true && */master.MQ[i].flag == false && !master.MQ[i].data.empty() && master.MQ[i].subnodelist.size() != 0)
             {
                 master.MQ[i].flag = true;
                 thread t(senddata, &master, i);
