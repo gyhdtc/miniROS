@@ -14,20 +14,24 @@ class RosNode : public Server {
         int master_port;
         char *master_ip;
     public:
-        void CreateServer();
-        void WaitForConnect();
-        
-        void Reg(int, char *, int, char *, string);
-        string RegT();
-        void Sub(string);
-        void Pub(string);
-        void Data(string, vector<int>);
-        void Data(string, int);
-        bool FindPublist(string);
+        void CreateServer(); // 创建服务器线程，keeprunning
+        void WaitForConnect(); // 创建服务器线程，keeprunning
 
-        void CreateClient(string);
+        /* ----------按照格式发送------- */
+        void Reg(int, char *, int, char *, string); // 注册
+        string RegT(); 
+        void Sub(string); // 订阅
+        void Pub(string); // 发布
+        void Data(string, vector<int>); // 发送消息
+        void Data(string, int); // 发送消息
+        bool FindPublist(string); // 判断是否有发布此消息
+        /* --------按照格式发送--------- */
 
+        void CreateClient(string); // 创建客户端，发送 string；创建线程，发送完，就销毁
+
+        // 构造函数
         RosNode(int port, char *ip, NodeCallBack sf, ClientCallBack cf) : Server(port, ip), _sf(sf), _cf(cf){};
+        // 析构函数
         ~RosNode();
 };
 

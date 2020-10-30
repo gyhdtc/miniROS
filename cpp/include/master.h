@@ -272,11 +272,15 @@ void senddata(Master *m, int index) {
         for (int i = 0; i < m->MQ[index].subnodelist.size(); i++)
         {
             int nodeindex = m->MQ[index].subnodelist[i];
+            
             int port = m->nodes[nodeindex].port;
             string ip = m->nodes[nodeindex].ip;
+
             char *cip = new char[ip.size()+1];
             mystrncpy(cip, ip.c_str(), ip.size());
+
             m->CreateClient(cip, port, text);
+
             delete []cip;
         }
         m->MQ[index].data.pop();

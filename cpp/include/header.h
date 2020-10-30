@@ -52,8 +52,8 @@ struct Node {
     int port;
     string ip;
     string name;
-    vector<string> sub_list;
-    vector<string> pub_list;
+    vector<string> sub_list;// 订阅
+    vector<string> pub_list;// 发布
 };
 
 struct MessageQueue {

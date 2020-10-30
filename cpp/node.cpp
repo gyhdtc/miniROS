@@ -34,7 +34,8 @@ int main()
     // char *master_ip = (char *)"115.157.195.140";
     
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
-    StartServer(&node1);
+    StartServer(&node1); // --------------------
+    
     node1.Reg(port, ip, master_port, master_ip, name);
     node1.Pub("blue1");
 
@@ -45,7 +46,7 @@ int main()
     }
     // test send data
 
-    signal(SIGINT, SigThread);
+    signal(SIGINT, SigThread); // 读取信号量
     while (keepRunning);
     return 0;
 }
