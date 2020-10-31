@@ -13,6 +13,7 @@
 #include <map>
 #include <queue>
 #include <algorithm>
+#include <errno.h>
 #define DEBUG 0
 #define DEBUG2 1
 #define REG to_string(1)

@@ -153,6 +153,8 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
         }
         }
     }
+    cout << "END" << endl;
+    close(*fd);
     /* rewrite */
 }
 

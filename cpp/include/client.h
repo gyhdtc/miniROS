@@ -41,6 +41,7 @@ void Client::ClientBindIpAndPort() {
     int res = connect(socket_fd,(struct sockaddr*)&addr,sizeof(addr));
     if(res == -1)
     {
+        cout << errno << endl;
         cout<<"client bind false" << endl;
         return;
     }

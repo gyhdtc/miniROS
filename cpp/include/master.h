@@ -229,14 +229,16 @@ void Master::CreateServer() {
 }
 
 void Master::WaitForConnect() {
-    listen(socket_fd,30);
+    listen(socket_fd, 300);
     socklen_t len = sizeof(client);
     while (1) {
         int fd = accept(socket_fd, (struct sockaddr*)&client, &len);
         if (fd == -1)
         {
+            cout << errno << endl;
             cout << "accept错误\n" << endl;
             exit(-1);
+            //continue;
         }
         thread t1(_sf, &fd, &client, this);
         t1.detach();

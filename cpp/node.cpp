@@ -9,6 +9,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
     {
         cout << "内容： " << buffer << endl;
     }
+    close(*fd);
     /* rewrite */
 }
 
@@ -38,7 +39,7 @@ int main()
     node1.Pub("blue1");
 
     // test send data
-    for (int i = 0; i < 100; i++) 
+    for (int i = 0; i < 1000; i++) 
     {
         node1.Data("blue1", i);
     }

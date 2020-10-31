@@ -9,6 +9,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
     {
         cout << "内容： " << buffer << endl;
     }
+    close(*fd);
     /* rewrite */
 }
 
