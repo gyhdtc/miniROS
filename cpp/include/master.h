@@ -165,6 +165,7 @@ void Master::GetData(string nodename, string pubname, vector<int> s) {
     for (int i = 0; i < s.size(); i++)
     {
         MQ[index].data.push(s[i]);
+        MQ[index].num ++;
     }
     MQ[index].savedataflag = false;
 }
@@ -188,7 +189,7 @@ void Master::ShowMQ() {
         }
         cout << endl;
 
-        cout << "数据：" << endl;
+        cout << "(" << MQ[i].num << ")" << "数据：" << endl;
         int myqueue_size = MQ[i].data.size();
         for(int k = 0; k < myqueue_size; k++)
         {

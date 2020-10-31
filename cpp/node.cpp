@@ -33,13 +33,13 @@ int main()
     // char *master_ip = (char *)"115.157.195.140";
     
     RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
-    StartServer(&node1); // --------------------
+    StartServer(&node1);
     
     node1.Reg(port, ip, master_port, master_ip, name);
     node1.Pub("blue1");
 
     // test send data
-    for (int i = 0; i < 1000; i++) 
+    for (int i = 0; i < 500; i++) 
     {
         node1.Data("blue1", i);
     }

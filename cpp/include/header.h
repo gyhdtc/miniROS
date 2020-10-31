@@ -61,6 +61,7 @@ struct MessageQueue {
     bool flag = false;
     bool savedataflag = false;
     int pubnode = -1;
+    int num = 0;
     string name;
     vector<int> subnodelist;
     queue<int> data;
