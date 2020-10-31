@@ -38,6 +38,7 @@ class RosNode : public Server {
 string RosNode::RegT() {
     return REG + "[name:" + node.name + ";ip:" + node.ip + ";port:" + to_string(node.port) + ";]";
 }
+
 void RosNode::Reg(int port, char *ip, int mport, char *mip, string name) {
     node.ip = ip;
     node.name = name;
@@ -46,18 +47,21 @@ void RosNode::Reg(int port, char *ip, int mport, char *mip, string name) {
     master_ip = mip;
     CreateClient(RegT());
 }
+
 void RosNode::Sub(string s) {
     nodelock.try_lock();
     node.sub_list.push_back(s);
     CreateClient(SUB+"[name:"+node.name+";sub:"+s+";]");
     nodelock.unlock();
 }
+
 void RosNode::Pub(string s) {
     nodelock.try_lock();
     node.pub_list.push_back(s);
     CreateClient(PUB+"[name:"+node.name+";pub:"+s+";]");
     nodelock.unlock();
 }
+
 void RosNode::Data(string pubname, vector<int> x) {
     string s;
     for (auto i : x)
@@ -69,12 +73,14 @@ void RosNode::Data(string pubname, vector<int> x) {
     else
         cout << "error pubname..." << endl;
 }
+
 void RosNode::Data(string pubname, int x) {
     if (FindPublist(pubname))
         CreateClient(DATA+"[name:"+node.name+";pub:"+pubname+";"+to_string(x)+",]");
     else
         cout << "error pubname..." << endl;
 }
+
 bool RosNode::FindPublist(string pubname) {
     for (int i = 0; i < node.pub_list.size(); i++)
     {
@@ -82,6 +88,7 @@ bool RosNode::FindPublist(string pubname) {
     }
     return false;
 }
+
 void RosNode::CreateClient(string text) {
     Client client(master_port, master_ip, _cf, text);
     client.ClientInit();
@@ -97,7 +104,7 @@ void RosNode::WaitForConnect() {
     listen(socket_fd, 30);
     socklen_t len = sizeof(client);
     while (1) {
-        int fd = accept(socket_fd,(struct sockaddr*)&client,&len);
+        int fd = accept(socket_fd, (struct sockaddr*)&client, &len);
         if (fd == -1)
         {
             cout << "accept错误\n" << endl;
@@ -107,25 +114,6 @@ void RosNode::WaitForConnect() {
         t1.detach();
     }
 }
-
-// void RosNode::ServerHandler(int *fd, struct sockaddr_in *client, RosNode *m) {
-//     char *ip = inet_ntoa(client->sin_addr);
-//     cout << "客户： 【" << ip << "】连接成功" << endl;
-//     write(*fd, "welcome", 7);
-//     char buffer[255]={};
-//     int size = read(*fd, buffer, sizeof(buffer));    
-//     cout << "接收到字节数为： " << size << endl;
-//     cout << "内容： " << buffer << endl;
-//     string name = buffer;
-//     /* rewrite */
-//     while
-//     (
-//         !(read(*fd, buffer, sizeof(buffer)) == 0 
-//         || read(*fd, buffer, sizeof(buffer)) == -1)
-//     );
-//     cout << "END" << endl;
-//     close(*fd);
-// }
 
 void shit(RosNode *m) {
     m->CreateServer();

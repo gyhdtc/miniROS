@@ -14,8 +14,6 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
 
 void MyClientCallBack(int *socket_fd, string s) {
     /* rewrite */
-    char flag[1] = {'\0'};
-    int x = 0;
     char *t = new char[s.length()+1];
     strcpy(t, s.c_str());
     write(*socket_fd, t, s.length());
@@ -40,7 +38,7 @@ int main()
     node1.Pub("blue1");
 
     // test send data
-    for (int i = 0; i < 1000; i++) 
+    for (int i = 0; i < 100; i++) 
     {
         node1.Data("blue1", i);
     }

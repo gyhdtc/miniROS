@@ -49,6 +49,7 @@ void Master::AddNode(string nodename, string ip, int port) {
     if (DEBUG) printf("+++ add a node [%s]\n", nodename.c_str());
     nodelock.unlock();
 }
+
 void Master::AddSub(string nodename, string subname) {
     int flag = 0;
     int index = name2index.count(nodename) > 0 ? name2index[nodename]: -1;
@@ -92,6 +93,7 @@ void Master::AddSub(string nodename, string subname) {
     nodelock.unlock();
     mqlock.unlock();
 }
+
 void Master::AddPub(string nodename, string pubname) {
     int flag = 0;
     int index = name2index.count(nodename) > 0 ? name2index[nodename]: -1;
@@ -148,6 +150,7 @@ void Master::AddPub(string nodename, string pubname) {
     nodelock.unlock();
     mqlock.unlock();
 }
+
 void Master::GetData(string nodename, string pubname, vector<int> s) {
     int index;
     for (int i = 0; i < num_mq; i++)
@@ -165,6 +168,7 @@ void Master::GetData(string nodename, string pubname, vector<int> s) {
     }
     MQ[index].savedataflag = false;
 }
+
 void Master::ShowMQ() {
     cout << "-----------" << num_mq << "----------------" << endl;
     for (int i = 0; i < num_mq; i++)
@@ -196,6 +200,7 @@ void Master::ShowMQ() {
     }
     cout << "-----------" << num_mq << "----------------" << endl;
 }
+
 void Master::ShowNodes() {
     cout << "---------------------------" << endl;
     for (int i = 0; i < num_node; i++)
@@ -217,15 +222,17 @@ void Master::ShowNodes() {
     }
     cout << "---------------------------" << endl;
 }
+
 void Master::CreateServer() {
     this->ServerInit();
     this->ServerBindIpAndPort();
 }
+
 void Master::WaitForConnect() {
     listen(socket_fd,30);
     socklen_t len = sizeof(client);
     while (1) {
-        int fd = accept(socket_fd,(struct sockaddr*)&client,&len);
+        int fd = accept(socket_fd, (struct sockaddr*)&client, &len);
         if (fd == -1)
         {
             cout << "accept错误\n" << endl;
@@ -236,35 +243,13 @@ void Master::WaitForConnect() {
     }
 }
 
-// void Master::ServerHandler(int *fd, struct sockaddr_in *client, Master *m) {
-//     char *ip = inet_ntoa(client->sin_addr);
-//     cout << "客户： 【" << ip << "】连接成功" << endl;
-//     write(*fd, "welcome", 7);
-//     char buffer[255]={};
-//     int size = read(*fd, buffer, sizeof(buffer));    
-//     cout << "接收到字节数为： " << size << endl;
-//     cout << "内容： " << buffer << endl;
-//     string name = buffer;
-//     /* rewrite */
-//     while
-//     (
-//         !(read(*fd, buffer, sizeof(buffer)) == 0 
-//         || read(*fd, buffer, sizeof(buffer)) == -1)
-//     );
-//     cout << "END" << endl;
-//     close(*fd);
-// }
-
 void Master::CreateClient(char * ip, int port, string s) {
     Client client(port, ip, _cf, s);
     client.ClientInit();
     client.ClientBindIpAndPort();
 }
-void shit(Master *m) {
-    m->CreateServer();
-    m->WaitForConnect();
-}
-void senddata(Master *m, int index) {
+
+void send_data(Master *m, int index) {
     while(!m->MQ[index].data.empty())
     {
         int x = m->MQ[index].data.front();
@@ -286,6 +271,11 @@ void senddata(Master *m, int index) {
         m->MQ[index].data.pop();
     }
     m->MQ[index].flag = false;
+}
+
+void shit(Master *m) {
+    m->CreateServer();
+    m->WaitForConnect();
 }
 
 void StartServer(Master *m) {

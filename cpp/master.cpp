@@ -182,7 +182,7 @@ int main()
             if (master.MQ[i].flag == false && !master.MQ[i].data.empty() && master.MQ[i].subnodelist.size() != 0)
             {
                 master.MQ[i].flag = true;
-                thread t(senddata, &master, i);
+                thread t(send_data, &master, i);
                 t.detach();
             }
         }
