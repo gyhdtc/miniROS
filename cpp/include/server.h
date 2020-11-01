@@ -21,7 +21,6 @@ class Server {
 };
 
 void Server::ServerInit() {
-    signal(SIGINT, SigThread);
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_fd == -1)
     {

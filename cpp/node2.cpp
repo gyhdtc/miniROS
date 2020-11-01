@@ -1,24 +1,31 @@
 #include "include/node.h"
 
-void MyServerCallBack(int *fd, struct sockaddr_in *client, RosNode *m) {
+void MyNodeServerCallBack(void *param) {
     /* rewrite */
-    char *ip = inet_ntoa(client->sin_addr);
+    NodeParam *sp = (NodeParam *)param;
+    char *ip = inet_ntoa(sp->client->sin_addr);
     char buffer[100]={};
     int size = 0;
-    while (!((size = read(*fd, buffer, sizeof(buffer))) <= 0))
+    while (!((size = read(*sp->fd, buffer, sizeof(buffer))) <= 0))
     {
         cout << "内容： " << buffer << endl;
     }
-    close(*fd);
+    close(*sp->fd);
+    delete sp;
     /* rewrite */
 }
 
-void MyClientCallBack(int *socket_fd, string s) {
+void MyClientCallBack(void *param) {
     /* rewrite */
-    char *t = new char[s.length()+1];
-    strcpy(t, s.c_str());
-    write(*socket_fd, t, s.length());
-    close(*socket_fd);
+    /* header.h : clientparam */
+    ClientParam *cp = (ClientParam *)param;
+    int len = cp->s.length();
+    int x = 0;
+    char *t = new char[len+1];
+    strcpy(t, cp->s.c_str());
+    write(cp->socket_fd, t, len);
+    close(cp->socket_fd);
+    delete cp;
     /* rewrite */
 }
 
@@ -32,7 +39,7 @@ int main()
     // char *ip = (char *)"49.123.118.159";
     // char *master_ip = (char *)"115.157.195.140";
     
-    RosNode node1(port, ip, MyServerCallBack, MyClientCallBack);
+    RosNode node1(port, ip, MyNodeServerCallBack, MyClientCallBack);
     StartServer(&node1);
 
     node1.Reg(port, ip, master_port, master_ip, name);

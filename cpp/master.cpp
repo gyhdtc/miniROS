@@ -1,12 +1,14 @@
 #include "include/master.h"
 
-void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
+void MyServerCallBack(void *param) {
     /* rewrite */
-    char *ip = inet_ntoa(client->sin_addr);
+    /* header.h : serverparam */
+    ServerParam *sp = (ServerParam *)param;
+    char *ip = inet_ntoa(sp->client->sin_addr);
     char buffer[100];
     int dataflag = 0;
     int size = 0;
-    while(!((size = read(*fd, buffer, sizeof(buffer))) <= 0))
+    while(!((size = read(*(sp->fd), buffer, sizeof(buffer))) <= 0))
     {
         if (DEBUG) cout << "*1 " << size << endl;
         cout << buffer << endl;
@@ -44,7 +46,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                     }
                 }
             }
-            m->AddNode(nodename, ip, port);
+            sp->m->AddNode(nodename, ip, port);
             break;
         }
         case '2':
@@ -72,7 +74,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                     }
                 }
             }
-            m->AddSub(nodename, subname);
+            sp->m->AddSub(nodename, subname);
             break;
         }
         case '3':
@@ -100,7 +102,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                     }
                 }
             }
-            m->AddPub(nodename, pubname);
+            sp->m->AddPub(nodename, pubname);
             break;
         }
         case '4':
@@ -142,7 +144,7 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
                 }
                 
             }
-            m->GetData(nodename, pubname, s);
+            sp->m->GetData(nodename, pubname, s);
             break;
         }
         default:
@@ -154,18 +156,22 @@ void MyServerCallBack(int *fd, struct sockaddr_in *client, Master *m) {
         }
     }
     cout << "END" << endl;
-    close(*fd);
+    close(*(sp->fd));
+    delete sp;
     /* rewrite */
 }
 
-void MyClientCallBack(int *socket_fd, string s) {
+void MyClientCallBack(void *param) {
     /* rewrite */
-    char flag[1] = {'\0'};
+    /* header.h : clientparam */
+    ClientParam *cp = (ClientParam *)param;
+    int len = cp->s.length();
     int x = 0;
-    char *t = new char[s.length()+1];
-    strcpy(t, s.c_str());
-    write(*socket_fd, t, s.length());
-    close(*socket_fd);
+    char *t = new char[len+1];
+    strcpy(t, cp->s.c_str());
+    write(cp->socket_fd, t, len);
+    close(cp->socket_fd);
+
     /* rewrite */
 }
 
@@ -173,6 +179,7 @@ int main()
 {
     int port = 8888;
     string ip = "0.0.0.0";
+    
     Master master(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&master);
 

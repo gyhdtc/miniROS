@@ -241,7 +241,14 @@ void Master::WaitForConnect() {
             exit(-1);
             //continue;
         }
-        thread t1(_sf, &fd, &client, this);
+        /* header.h : serverparam */
+        ServerParam *sp;
+        sp = new ServerParam;
+        sp->fd = &fd;
+        sp->client = &client;
+        sp->m = this;
+        /* header.h : serverparam */
+        thread t1(_sf, sp);
         t1.detach();
     }
 }
@@ -250,6 +257,10 @@ void Master::CreateClient(char * ip, int port, string s) {
     Client client(port, ip, _cf, s);
     client.ClientInit();
     client.ClientBindIpAndPort();
+}
+
+Master::~Master() {
+    cout << "master stop!\n";
 }
 
 void send_data(Master *m, int index) {
@@ -286,8 +297,4 @@ void StartServer(Master *m) {
     m->nodes.resize(100);
     thread t1(shit, m);
     t1.detach();
-}
-
-Master::~Master() {
-    cout << "master stop!\n";
 }

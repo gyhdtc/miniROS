@@ -7,8 +7,8 @@ class Client {
     public:
         int _port;
         char *_ip;
-        Master *m;
-        int index;
+        //Master *m;
+        //int index;
         ClientCallBack _cf; 
         string text;
         int socket_fd;
@@ -45,9 +45,18 @@ void Client::ClientBindIpAndPort() {
         cout<<"client bind false" << endl;
         return;
     }
-    usleep(100*((rand()%50+100)));
-    thread t(_cf, &this->socket_fd, text);
+    /* header.h : clientparam */
+    ClientParam *cp;
+    cp = new ClientParam;
+    cp->socket_fd = socket_fd;
+    cp->s = text;
+    /* header.h : clientparam */
+    usleep(200*((rand()%50+100)));
+    thread t(_cf, cp);
     t.join();
+    // 这里会与 clientcallback 中的 delete 冲突
+    // 故意留一个bug，学一下调试 strace
+    delete cp;
 }
 
 void Client::ClientHandler(int *socket_fd, string s) {

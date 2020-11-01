@@ -30,14 +30,14 @@ class RosNode;
 
 static int keepRunning = 1;
 
-void stest(int *, struct sockaddr_in *, Master *);
-typedef decltype(stest)* ServerCallBack;
+void SCB(void *param);
+typedef decltype(SCB)* ServerCallBack;
 
-void ntest(int *, struct sockaddr_in *, RosNode *);
-typedef decltype(ntest)* NodeCallBack;
+void NCB(void *param);
+typedef decltype(NCB)* NodeCallBack;
 
-void ctest(int *, string);
-typedef decltype(ctest)* ClientCallBack;
+void CCB(void *param);
+typedef decltype(CCB)* ClientCallBack;
 
 static void SigThread(int);
 void SigThread(int sig) {
@@ -65,6 +65,23 @@ struct MessageQueue {
     string name;
     vector<int> subnodelist;
     queue<int> data;
+};
+/* header.h : serverparam */
+struct ServerParam {
+    int *fd;
+    struct sockaddr_in *client;
+    Master *m;
+};
+/* header.h : clientparam */
+struct ClientParam {
+    int socket_fd;
+    string s;
+};
+/* header.h : nodeparam */
+struct NodeParam {
+    int *fd;
+    struct sockaddr_in *client;
+    RosNode *n;
 };
 
 char * mystrncpy(char *dest, const char *src, int n) {

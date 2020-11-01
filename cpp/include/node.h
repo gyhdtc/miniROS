@@ -14,9 +14,6 @@ class RosNode : public Server {
         int master_port;
         char *master_ip;
     public:
-        void CreateServer(); // 创建服务器线程，keeprunning
-        void WaitForConnect(); // 创建服务器线程，keeprunning
-
         /* ----------按照格式发送------- */
         void Reg(int, char *, int, char *, string); // 注册
         string RegT(); 
@@ -27,6 +24,8 @@ class RosNode : public Server {
         bool FindPublist(string); // 判断是否有发布此消息
         /* --------按照格式发送--------- */
 
+        void CreateServer(); // 创建服务器线程，keeprunning
+        void WaitForConnect(); // 创建服务器线程，keeprunning
         void CreateClient(string); // 创建客户端，发送 string；创建线程，发送完，就销毁
 
         // 构造函数
@@ -107,10 +106,18 @@ void RosNode::WaitForConnect() {
         int fd = accept(socket_fd, (struct sockaddr*)&client, &len);
         if (fd == -1)
         {
+            cout << errno << endl;
             cout << "accept错误\n" << endl;
             exit(-1);
+            //continue;
         }
-        thread t1(_sf, &fd, &client, this);
+        /* header.h : nodeparam */
+        struct NodeParam *sp;
+        sp->fd = &fd;
+        sp->client = &client;
+        sp->n = this;
+        /* header.h : nodeparam */
+        thread t1(_sf, sp);
         t1.detach();
     }
 }
