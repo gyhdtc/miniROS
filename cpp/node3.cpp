@@ -45,7 +45,7 @@ int main()
     StartServer(&node1);
     
     node1.Reg(port, ip, master_port, master_ip, name);
-    node1.Sub("blue2");
+    node1.Sub("blue1");
 
     signal(SIGINT, SigThread);
 

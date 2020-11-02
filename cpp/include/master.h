@@ -5,6 +5,11 @@
 #include "server.h"
 #include "client.h"
 
+void transmitData(Master *);
+void sendThread(Master *, int);
+void serverThread(Master *);
+void StartServer(Master *);
+
 class Master : public Server {
     public:
         mutex mqlock;
@@ -262,32 +267,55 @@ void Master::CreateClient(char * ip, int port, string s) {
 Master::~Master() {
     cout << "master stop!\n";
 }
-
-void send_data(Master *m, int index) {
+void transmitData(Master *m) {
+    while (keepRunning)
+    {
+        for (int i = 0; i < m->MQ.size(); i++)
+        {
+            if (m->MQ[i].flag == false && !m->MQ[i].data.empty() && m->MQ[i].subnodelist.size() != 0)
+            {
+                m->MQ[i].flag = true;
+                thread t(sendThread, m, i);
+                t.detach();
+            }
+        }
+    }
+}
+void realsendthread(Master *m, string ip, int port, string text) {
+    char *cip = new char[ip.size()+1];
+    mystrncpy(cip, ip.c_str(), ip.size());
+    m->CreateClient(cip, port, text);
+    delete []cip;
+}
+void sendThread(Master *m, int index) {
     while(!m->MQ[index].data.empty())
     {
         int x = m->MQ[index].data.front();
         string text = to_string(x);
-        for (int i = 0; i < m->MQ[index].subnodelist.size(); i++)
+        int send_size = m->MQ[index].subnodelist.size();
+        vector<thread *> send(send_size);
+        cout << "1" << endl;
+        for (int i = 0; i < send_size; i++)
         {
             int nodeindex = m->MQ[index].subnodelist[i];
-            
             int port = m->nodes[nodeindex].port;
             string ip = m->nodes[nodeindex].ip;
 
-            char *cip = new char[ip.size()+1];
-            mystrncpy(cip, ip.c_str(), ip.size());
-
-            m->CreateClient(cip, port, text);
-
-            delete []cip;
+            thread t1(realsendthread, m, ip, port, text);
+            //t1.detach();
+            send[i] = &t1;
+        }
+        cout << "2" << endl;
+        for (int i = 0; i < send_size; i++)
+        {
+            send[i]->join();
         }
         m->MQ[index].data.pop();
     }
     m->MQ[index].flag = false;
 }
 
-void shit(Master *m) {
+void serverThread(Master *m) {
     m->CreateServer();
     m->WaitForConnect();
 }
@@ -295,6 +323,6 @@ void shit(Master *m) {
 void StartServer(Master *m) {
     m->MQ.resize(100);
     m->nodes.resize(100);
-    thread t1(shit, m);
+    thread t1(serverThread, m);
     t1.detach();
 }

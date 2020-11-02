@@ -179,23 +179,10 @@ int main()
 {
     int port = 8888;
     string ip = "0.0.0.0";
-    
     Master master(port, ip, MyServerCallBack, MyClientCallBack);
     StartServer(&master);
-
+    transmitData(&master);
     signal(SIGINT, SigThread);
-    while (keepRunning)
-    {
-        for (int i = 0; i < master.MQ.size(); i++)
-        {
-            if (master.MQ[i].flag == false && !master.MQ[i].data.empty() && master.MQ[i].subnodelist.size() != 0)
-            {
-                master.MQ[i].flag = true;
-                thread t(send_data, &master, i);
-                t.detach();
-            }
-        }
-    }
     master.ShowNodes();
     master.ShowMQ();
     return 0;
