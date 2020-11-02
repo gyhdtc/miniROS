@@ -56,7 +56,7 @@ void Client::ClientBindIpAndPort() {
     t.join();
     // 这里会与 clientcallback 中的 delete 冲突
     // 故意留一个bug，学一下调试 strace
-    delete cp;
+    // delete cp;
 }
 
 void Client::ClientHandler(int *socket_fd, string s) {

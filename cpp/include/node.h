@@ -113,6 +113,7 @@ void RosNode::WaitForConnect() {
         }
         /* header.h : nodeparam */
         struct NodeParam *sp;
+        sp = new NodeParam;
         sp->fd = &fd;
         sp->client = &client;
         sp->n = this;

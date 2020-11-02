@@ -1,8 +1,9 @@
 #include "include/node.h"
 
 void MyNodeServerCallBack(void *param) {
-    /* rewrite */
+    /* header.h : clientparam */
     NodeParam *sp = (NodeParam *)param;
+    /* rewrite */
     char *ip = inet_ntoa(sp->client->sin_addr);
     char buffer[100]={};
     int size = 0;
@@ -11,22 +12,23 @@ void MyNodeServerCallBack(void *param) {
         cout << "内容： " << buffer << endl;
     }
     close(*sp->fd);
-    delete sp;
     /* rewrite */
+    delete sp;
 }
 
 void MyClientCallBack(void *param) {
-    /* rewrite */
     /* header.h : clientparam */
     ClientParam *cp = (ClientParam *)param;
+    /* rewrite */
     int len = cp->s.length();
     int x = 0;
     char *t = new char[len+1];
     strcpy(t, cp->s.c_str());
     write(cp->socket_fd, t, len);
     close(cp->socket_fd);
-    delete cp;
+    delete []t;
     /* rewrite */
+    delete cp;
 }
 
 int main()
@@ -46,7 +48,7 @@ int main()
     node1.Pub("blue1");
 
     // test send data
-    for (int i = 0; i < 500; i++) 
+    for (int i = 0; i < 100; i++) 
     {
         node1.Data("blue1", i);
     }

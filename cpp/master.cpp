@@ -1,9 +1,9 @@
 #include "include/master.h"
 
 void MyServerCallBack(void *param) {
-    /* rewrite */
     /* header.h : serverparam */
     ServerParam *sp = (ServerParam *)param;
+    /* rewrite */
     char *ip = inet_ntoa(sp->client->sin_addr);
     char buffer[100];
     int dataflag = 0;
@@ -157,22 +157,22 @@ void MyServerCallBack(void *param) {
     }
     cout << "END" << endl;
     close(*(sp->fd));
-    delete sp;
     /* rewrite */
+    delete sp;
 }
 
 void MyClientCallBack(void *param) {
-    /* rewrite */
     /* header.h : clientparam */
     ClientParam *cp = (ClientParam *)param;
+    /* rewrite */
     int len = cp->s.length();
     int x = 0;
     char *t = new char[len+1];
     strcpy(t, cp->s.c_str());
     write(cp->socket_fd, t, len);
     close(cp->socket_fd);
-
     /* rewrite */
+    delete cp;
 }
 
 int main()

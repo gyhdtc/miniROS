@@ -30,14 +30,16 @@ class RosNode;
 
 static int keepRunning = 1;
 
-void SCB(void *param);
-typedef decltype(SCB)* ServerCallBack;
+void CallBackfun(void *param);
+typedef decltype(CallBackfun)* ServerCallBack;
+typedef decltype(CallBackfun)* NodeCallBack;
+typedef decltype(CallBackfun)* ClientCallBack;
 
-void NCB(void *param);
-typedef decltype(NCB)* NodeCallBack;
+// void NCB(void *param);
+// typedef decltype(NCB)* NodeCallBack;
 
-void CCB(void *param);
-typedef decltype(CCB)* ClientCallBack;
+// void CCB(void *param);
+// typedef decltype(CCB)* ClientCallBack;
 
 static void SigThread(int);
 void SigThread(int sig) {
