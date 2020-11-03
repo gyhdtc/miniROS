@@ -3,15 +3,17 @@
 void MyServerCallBack(void *param) {
     /* header.h : serverparam */
     ServerParam *sp = (ServerParam *)param;
+    int *fd = sp->fd;
+    struct sockaddr_in *client = sp->client;
+    Master *m = sp->m;
     /* rewrite */
-    char *ip = inet_ntoa(sp->client->sin_addr);
+    char *ip = inet_ntoa(client->sin_addr);
     char buffer[100];
     int dataflag = 0;
     int size = 0;
     while(!((size = read(*(sp->fd), buffer, sizeof(buffer))) <= 0))
     {
-        if (DEBUG) cout << "*1 " << size << endl;
-        cout << buffer << endl;
+        //cout << buffer << endl;
         if (!(buffer[0] <= '4' && buffer[0] >= '1') && buffer[size-1] != ']')
         {
             cout << "error data...reload..." << endl;
@@ -155,7 +157,7 @@ void MyServerCallBack(void *param) {
         }
         }
     }
-    cout << "END" << endl;
+    //cout << "END" << endl;
     close(*(sp->fd));
     /* rewrite */
     delete sp;
@@ -180,9 +182,14 @@ int main()
     int port = 8888;
     string ip = "0.0.0.0";
     Master master(port, ip, MyServerCallBack, MyClientCallBack);
-    StartServer(&master);
-    transmitData(&master);
+    //StartServer(&master);
+    master.StartServer();
+
     signal(SIGINT, SigThread);
+    while (keepRunning)
+    {
+        master.TransmitData();
+    }    
     master.ShowNodes();
     master.ShowMQ();
     return 0;

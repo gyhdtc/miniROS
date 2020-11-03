@@ -33,6 +33,11 @@ class Master : public Server {
         void WaitForConnect();
         void CreateClient(char *, int, string);
 
+        void StartServer();
+        void TransmitData();
+        static void serverThread(Master *);
+        static void sendThread(Master *, int);
+
         Master(int port, char *ip, ServerCallBack cb, ClientCallBack cf) : Server(port, ip), _sf(cb), _cf(cf) {};
         Master(int port, string ip, ServerCallBack cb, ClientCallBack cf) : Server(port, ip), _sf(cb), _cf(cf) {};
         ~Master();
@@ -169,6 +174,7 @@ void Master::GetData(string nodename, string pubname, vector<int> s) {
     }
     for (int i = 0; i < s.size(); i++)
     {
+        if (DEBUG) printf("+++ add a data [%d] to [%s]\n", s[i], nodename.c_str());
         MQ[index].data.push(s[i]);
         MQ[index].num ++;
     }
@@ -267,62 +273,66 @@ void Master::CreateClient(char * ip, int port, string s) {
 Master::~Master() {
     cout << "master stop!\n";
 }
-void transmitData(Master *m) {
-    while (keepRunning)
+
+void Master::TransmitData() {
+    for (int i = 0; i < this->MQ.size(); i++)
     {
-        for (int i = 0; i < m->MQ.size(); i++)
+        if (this->MQ[i].flag == false && !this->MQ[i].data.empty() && this->MQ[i].subnodelist.size() != 0)
         {
-            if (m->MQ[i].flag == false && !m->MQ[i].data.empty() && m->MQ[i].subnodelist.size() != 0)
-            {
-                m->MQ[i].flag = true;
-                thread t(sendThread, m, i);
-                t.detach();
-            }
+            this->MQ[i].flag = true;
+            thread t(Master::sendThread, this, i);
+            t.detach();
         }
     }
 }
-void realsendthread(Master *m, string ip, int port, string text) {
+void realsendthread(Master *m, string ip, int port, string text, int *send_num_flag, mutex *a) {
     char *cip = new char[ip.size()+1];
     mystrncpy(cip, ip.c_str(), ip.size());
     m->CreateClient(cip, port, text);
+    // rewrite
+    // 并行发送 data，可尝试更优雅的方法
+    a->lock();
+    (*send_num_flag) ++;
+    a->unlock();
+    // 并行发送 data，可尝试更优雅的方法
     delete []cip;
 }
-void sendThread(Master *m, int index) {
+void Master::sendThread(Master *m, int index) {
     while(!m->MQ[index].data.empty())
     {
         int x = m->MQ[index].data.front();
-        string text = to_string(x);
         int send_size = m->MQ[index].subnodelist.size();
-        vector<thread *> send(send_size);
-        cout << "1" << endl;
+        string text = to_string(x);
+        // 并行发送 data，可尝试更优雅的方法
+        int send_num_flag = 0;
+        mutex a;
+        // 并行发送 data，可尝试更优雅的方法
         for (int i = 0; i < send_size; i++)
         {
             int nodeindex = m->MQ[index].subnodelist[i];
             int port = m->nodes[nodeindex].port;
             string ip = m->nodes[nodeindex].ip;
-
-            thread t1(realsendthread, m, ip, port, text);
-            //t1.detach();
-            send[i] = &t1;
+            // rewrite
+            thread t1(realsendthread, m, ip, port, text, &send_num_flag, &a);
+            t1.detach();
         }
-        cout << "2" << endl;
-        for (int i = 0; i < send_size; i++)
-        {
-            send[i]->join();
-        }
+        // rewrite
+        // 并行发送 data，可尝试更优雅的方法
+        while (send_num_flag < send_size);
+        // 并行发送 data，可尝试更优雅的方法
         m->MQ[index].data.pop();
     }
     m->MQ[index].flag = false;
 }
 
-void serverThread(Master *m) {
+void Master::serverThread(Master *m) {
     m->CreateServer();
     m->WaitForConnect();
 }
 
-void StartServer(Master *m) {
-    m->MQ.resize(100);
-    m->nodes.resize(100);
-    thread t1(serverThread, m);
+void Master::StartServer() {
+    this->MQ.resize(MAX_SIZE_MQ);
+    this->nodes.resize(MAX_SIZE_NODE);
+    thread t1(Master::serverThread, this);
     t1.detach();
 }

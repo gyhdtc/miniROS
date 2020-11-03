@@ -46,12 +46,12 @@ int main()
 
     node1.Reg(port, ip, master_port, master_ip, name);
     node1.Sub("blue1");
-    //node1.Pub("blue2");
+    node1.Pub("blue2");
 
     // test send data
-    for (int i = 0; i < 100; i++) 
+    for (int i = 0; i < 500; i++) 
     {
-    //    node1.Data("blue2", i+1000);
+        node1.Data("blue2", i+1000);
     }
     // test send data
     

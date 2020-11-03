@@ -14,12 +14,14 @@
 #include <queue>
 #include <algorithm>
 #include <errno.h>
-#define DEBUG 0
+#define DEBUG 1
 #define DEBUG2 1
 #define REG to_string(1)
 #define SUB to_string(2)
 #define PUB to_string(3)
 #define DATA to_string(4)
+#define MAX_SIZE_MQ 100
+#define MAX_SIZE_NODE 100
 using namespace std;
 
 class Master;
@@ -34,12 +36,6 @@ void CallBackfun(void *param);
 typedef decltype(CallBackfun)* ServerCallBack;
 typedef decltype(CallBackfun)* NodeCallBack;
 typedef decltype(CallBackfun)* ClientCallBack;
-
-// void NCB(void *param);
-// typedef decltype(NCB)* NodeCallBack;
-
-// void CCB(void *param);
-// typedef decltype(CCB)* ClientCallBack;
 
 static void SigThread(int);
 void SigThread(int sig) {
@@ -68,6 +64,7 @@ struct MessageQueue {
     vector<int> subnodelist;
     queue<int> data;
 };
+
 /* header.h : serverparam */
 struct ServerParam {
     int *fd;

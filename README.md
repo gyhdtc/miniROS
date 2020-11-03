@@ -45,3 +45,40 @@
     Data：{DATA}[name:{node.name};pub:{pub_name;{{data,}......}]  
     
     大括号{ }内部表示可变参数，实际传输数据没有{ }  
+
+---
+## [补充]使用说明  
+node和master中的回调函数可以自己重写。回调函数指针定义为：
+```cpp
+void CallBackfun(void *param);  
+typedef decltype(CallBackfun)* ServerCallBack;  
+typedef decltype(CallBackfun)* NodeCallBack;  
+typedef decltype(CallBackfun)* ClientCallBack;  
+```
+函数参数为 `void *`类型，意味着可以自定义任何形式的参数。只需要利用 `header.h` 中定义的参数结构体。例如默认的，在`header.h`中定义了三种回调函数的参数：
+```cpp
+/* header.h : serverparam */
+struct ServerParam {
+    int *fd;
+    struct sockaddr_in *client;
+    Master *m;
+};
+/* header.h : clientparam */
+struct ClientParam {
+    int socket_fd;
+    string s;
+};
+/* header.h : nodeparam */
+struct NodeParam {
+    int *fd;
+    struct sockaddr_in *client;
+    RosNode *n;
+};
+```
+结构体含义，顾名思义。在回调函数中，使用 param 指针时，记得进行类型转换：
+```cpp
+ServerParam *sp = (ServerParam *)param;
+int *fd = sp->fd;
+struct sockaddr_in *client = sp->client;
+Master *m = sp->m;
+```
