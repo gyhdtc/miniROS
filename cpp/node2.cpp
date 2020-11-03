@@ -49,7 +49,7 @@ int main()
     node1.Pub("blue2");
 
     // test send data
-    for (int i = 0; i < 500; i++) 
+    for (int i = 0; i < 1000; i++) 
     {
         node1.Data("blue2", i+1000);
     }
