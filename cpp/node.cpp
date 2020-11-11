@@ -33,6 +33,7 @@ void MyClientCallBack(void *param) {
 
 int main()
 {
+    GetIpAddress();
     string name = "gyh1";
     int port = 8889;
     int master_port = 8888;

@@ -179,6 +179,7 @@ void MyClientCallBack(void *param) {
 
 int main()
 {
+    GetIpAddress();
     int port = 8888;
     string ip = "0.0.0.0";
     Master master(port, ip, MyServerCallBack, MyClientCallBack);
