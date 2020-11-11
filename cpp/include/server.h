@@ -42,7 +42,7 @@ void Server::ServerBindIpAndPort() {
         cout << "server bind false" << endl;
         exit(1);
     }
-    cout << "server bind success" << endl;
+    cout << "server bind success : " << _ip << ":" << _port << endl;
 }
 
 Server::Server(int port, string s) {
