@@ -84,4 +84,5 @@ Master *m = sp->m;
 ```
 
 ## [补充]需求说明  
-需要参考MQTT传输协议，将传输的内容包装成“二进制流”的形式。socket的开头几个字节设计成“数据包”的形式。  
+需要参考MQTT传输协议，将传输的内容包装成“二进制流”的形式。socket的开头几个字节设计成“数据包”的形式。 
+https://cloud.tencent.com/developer/article/1429435  
