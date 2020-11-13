@@ -4,10 +4,10 @@ from threading import Thread
 hostname = socket.gethostname()
 node_name = "gyhpy1"
 my_ip = "0.0.0.0"# socket.gethostbyname(hostname)
-my_port = "8893"
+my_port = "8894"
 
 s_ADDRESS = (my_ip, int(my_port))
-c_ADDRESS = ('127.0.0.1', 8894)
+c_ADDRESS = ('127.0.0.1', 8893)
 g_socket_server = None
 g_conn_pool = []
 
@@ -64,8 +64,8 @@ if __name__ == '__main__':
     t = Thread(target=accept_client)
     t.setDaemon(True)
     t.start()
-    reg()
-    sub("shit")
-    pub("shit2")
+    # reg()
+    # sub("shit")
+    # pub("shit2")
     while True:
         pass
