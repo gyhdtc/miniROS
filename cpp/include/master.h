@@ -56,7 +56,7 @@ void Master::AddNode(string nodename, string ip, int port) {
     nodes[num_node].index = num_node;
     name2index[nodename] = num_node;
     num_node++;
-    if (DEBUG) printf("+++ add a node [%s]\n", nodename.c_str());
+    if (DEBUG) printf("+++ add a node [%s][%s][%d]\n", nodename.c_str(), ip.c_str(), port);
     nodelock.unlock();
 }
 
