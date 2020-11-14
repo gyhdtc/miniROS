@@ -45,12 +45,12 @@ int main()
     StartServer(&node1);
 
     node1.Reg(port, ip, master_port, master_ip, name);
-    node1.Pub("shit1");
+    node1.Pub("blue1");
 
     // test send data
     for (int i = 0; i < 100; i++) 
     {
-        node1.Data("shit1", i);
+        node1.Data("blue1", i);
     }
     // test send data
 

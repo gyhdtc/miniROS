@@ -157,7 +157,6 @@ void MyServerCallBack(void *param) {
         }
         }
     }
-    //cout << "END" << endl;
     close(*(sp->fd));
     /* rewrite */
     delete sp;

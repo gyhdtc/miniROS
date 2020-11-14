@@ -302,7 +302,7 @@ void Master::sendThread(Master *m, int index) {
     {
         int x = m->MQ[index].data.front();
         int send_size = m->MQ[index].subnodelist.size();
-        string text = to_string(x);
+        string text = "[" + m->MQ[index].name + ":" + to_string(x) + "]";
         // 并行发送 data，可尝试更优雅的方法
         int send_num_flag = 0;
         mutex a;
