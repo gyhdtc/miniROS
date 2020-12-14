@@ -9,6 +9,16 @@ private:
     ListItem<T>* _front;
     long _size;
 };
+template <typename T>
+void List<T>::insert_front(T value)
+{
+
+}
+template <typename T>
+void List<T>::insert_end(T value)
+{
+
+}
 
 template <typename T>
 class ListItem
