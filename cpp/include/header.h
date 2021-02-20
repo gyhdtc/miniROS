@@ -33,10 +33,15 @@ class RosNode;
 
 static int keepRunning = 1;
 
-void CallBackfun(void *param);
-typedef decltype(CallBackfun)* ServerCallBack;
-typedef decltype(CallBackfun)* NodeCallBack;
-typedef decltype(CallBackfun)* ClientCallBack;
+struct ServerParam;
+struct NodeParam;
+struct ClientParam;
+void ServerBackfun(ServerParam);
+void NodeBackfun(NodeParam);
+void ClientBackfun(ClientParam);
+typedef decltype(ServerBackfun)* ServerCallBack;
+typedef decltype(NodeBackfun)* NodeCallBack;
+typedef decltype(ClientBackfun)* ClientCallBack;
 
 static void SigThread(int);
 void SigThread(int sig) {
@@ -68,8 +73,8 @@ struct MessageQueue {
 
 /* header.h : serverparam */
 struct ServerParam {
-    int *fd;
-    struct sockaddr_in *client;
+    int fd;
+    struct sockaddr_in client;
     Master *m;
 };
 /* header.h : clientparam */
@@ -79,8 +84,8 @@ struct ClientParam {
 };
 /* header.h : nodeparam */
 struct NodeParam {
-    int *fd;
-    struct sockaddr_in *client;
+    int fd;
+    struct sockaddr_in client;
     RosNode *n;
 };
 

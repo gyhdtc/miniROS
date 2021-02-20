@@ -46,10 +46,10 @@ void Client::ClientBindIpAndPort() {
         return;
     }
     /* header.h : clientparam */
-    ClientParam *cp;
-    cp = new ClientParam;
-    cp->socket_fd = socket_fd;
-    cp->s = text;
+    ClientParam cp;
+    // cp = new ClientParam;
+    cp.socket_fd = socket_fd;
+    cp.s = text;
     /* header.h : clientparam */
     usleep(200*((rand()%50+100)));
     thread t(_cf, cp);

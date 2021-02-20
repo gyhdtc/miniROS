@@ -4,8 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/opt/ros/kinetic/include",
-                "/home/gyh/shit/cpp/include"
+                // "/opt/ros/kinetic/include",
+                "/home/g/miniROS/cpp/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

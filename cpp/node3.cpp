@@ -1,34 +1,34 @@
 #include "include/node.h"
 
-void MyNodeServerCallBack(void *param) {
+void MyNodeServerCallBack(NodeParam param) {
     /* header.h : clientparam */
-    NodeParam *sp = (NodeParam *)param;
+    NodeParam sp = param;
     /* rewrite */
-    char *ip = inet_ntoa(sp->client->sin_addr);
+    char *ip = inet_ntoa(sp.client.sin_addr);
     char buffer[100]={};
     int size = 0;
-    while (!((size = read(*sp->fd, buffer, sizeof(buffer))) <= 0))
+    while (!((size = read(sp.fd, buffer, sizeof(buffer))) <= 0))
     {
         cout << "内容： " << buffer << endl;
     }
-    close(*sp->fd);
+    close(sp.fd);
     /* rewrite */
-    delete sp;
+    // delete sp;
 }
 
-void MyClientCallBack(void *param) {
+void MyClientCallBack(ClientParam param) {
     /* header.h : clientparam */
-    ClientParam *cp = (ClientParam *)param;
+    ClientParam cp = param;
     /* rewrite */
-    int len = cp->s.length();
+    int len = cp.s.length();
     int x = 0;
     char *t = new char[len+1];
-    strcpy(t, cp->s.c_str());
-    write(cp->socket_fd, t, len);
-    close(cp->socket_fd);
+    strcpy(t, cp.s.c_str());
+    write(cp.socket_fd, t, len);
+    close(cp.socket_fd);
     delete []t;
     /* rewrite */
-    delete cp;
+    // delete cp;
 }
 
 int main()

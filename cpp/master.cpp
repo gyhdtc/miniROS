@@ -1,17 +1,17 @@
 #include "include/master.h"
 
-void MyServerCallBack(void *param) {
+void MyServerCallBack(ServerParam param) {
     /* header.h : serverparam */
-    ServerParam *sp = (ServerParam *)param;
-    int *fd = sp->fd;
-    struct sockaddr_in *client = sp->client;
-    Master *m = sp->m;
+    ServerParam sp = param;
+    int fd = sp.fd;
+    struct sockaddr_in client = sp.client;
+    Master *m = sp.m;
     /* rewrite */
-    char *ip = inet_ntoa(client->sin_addr);
+    char *ip = inet_ntoa(client.sin_addr);
     char buffer[100];
     int dataflag = 0;
     int size = 0;
-    while(!((size = read(*(sp->fd), buffer, sizeof(buffer))) <= 0))
+    while(!((size = read(sp.fd, buffer, sizeof(buffer))) <= 0))
     {
         //cout << buffer << endl;
         if (!(buffer[0] <= '4' && buffer[0] >= '1') && buffer[size-1] != ']')
@@ -48,7 +48,7 @@ void MyServerCallBack(void *param) {
                     }
                 }
             }
-            sp->m->AddNode(nodename, ip, port);
+            sp.m->AddNode(nodename, ip, port);
             break;
         }
         case '2':
@@ -76,7 +76,7 @@ void MyServerCallBack(void *param) {
                     }
                 }
             }
-            sp->m->AddSub(nodename, subname);
+            sp.m->AddSub(nodename, subname);
             break;
         }
         case '3':
@@ -104,7 +104,7 @@ void MyServerCallBack(void *param) {
                     }
                 }
             }
-            sp->m->AddPub(nodename, pubname);
+            sp.m->AddPub(nodename, pubname);
             break;
         }
         case '4':
@@ -146,7 +146,7 @@ void MyServerCallBack(void *param) {
                 }
                 
             }
-            sp->m->GetData(nodename, pubname, s);
+            sp.m->GetData(nodename, pubname, s);
             break;
         }
         default:
@@ -157,23 +157,23 @@ void MyServerCallBack(void *param) {
         }
         }
     }
-    close(*(sp->fd));
+    close(sp.fd);
     /* rewrite */
-    delete sp;
+    // delete sp;
 }
 
-void MyClientCallBack(void *param) {
+void MyClientCallBack(ClientParam param) {
     /* header.h : clientparam */
-    ClientParam *cp = (ClientParam *)param;
+    ClientParam cp = param;
     /* rewrite */
-    int len = cp->s.length();
+    int len = cp.s.length();
     int x = 0;
     char *t = new char[len+1];
-    strcpy(t, cp->s.c_str());
-    write(cp->socket_fd, t, len);
-    close(cp->socket_fd);
+    strcpy(t, cp.s.c_str());
+    write(cp.socket_fd, t, len);
+    close(cp.socket_fd);
     /* rewrite */
-    delete cp;
+    // delete cp;
 }
 
 int main()

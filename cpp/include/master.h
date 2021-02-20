@@ -241,10 +241,18 @@ void Master::CreateServer() {
 }
 
 void Master::WaitForConnect() {
+    /* learn */
     listen(socket_fd, 300);
+    /*
+    -- 参数2：socket可排队最大连接个数
+    */
     socklen_t len = sizeof(client);
     while (1) {
+        /* learn */
         int fd = accept(socket_fd, (struct sockaddr*)&client, &len);
+        /*
+        -- 已连接的socket描述字
+        */
         if (fd == -1)
         {
             cout << errno << endl;
@@ -253,11 +261,10 @@ void Master::WaitForConnect() {
             //continue;
         }
         /* header.h : serverparam */
-        ServerParam *sp;
-        sp = new ServerParam;
-        sp->fd = &fd;
-        sp->client = &client;
-        sp->m = this;
+        ServerParam sp;
+        sp.fd = fd;
+        sp.client = client;
+        sp.m = this;
         /* header.h : serverparam */
         thread t1(_sf, sp);
         t1.detach();
@@ -285,6 +292,7 @@ void Master::TransmitData() {
         }
     }
 }
+
 void realsendthread(Master *m, string ip, int port, string text, int *send_num_flag, mutex *a) {
     char *cip = new char[ip.size()+1];
     mystrncpy(cip, ip.c_str(), ip.size());
@@ -297,6 +305,7 @@ void realsendthread(Master *m, string ip, int port, string text, int *send_num_f
     // 并行发送 data，可尝试更优雅的方法
     delete []cip;
 }
+
 void Master::sendThread(Master *m, int index) {
     while(!m->MQ[index].data.empty())
     {
