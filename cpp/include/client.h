@@ -38,7 +38,18 @@ void Client::ClientInit() {
 }
 
 void Client::ClientBindIpAndPort() {
+    /* learn6 */
     int res = connect(socket_fd,(struct sockaddr*)&addr,sizeof(addr));
+    /*
+    -- 从 进程 到 内核
+    -- 参数不介绍了，learn3,learn5 说的很详细。
+    -- 介绍下此函数与三次握手的关系：
+    -- 调用connect，客户端发送第一次 SYN；服务器接受到之后，返回SYN和ACK，connect接收到之后立即返回；
+    -- 可能会发生的错误1：
+    -- “硬错误” 服务器没有进程在监听此端口，服务器返回RST，connect接收到之后立即返回错误，econnrefuse；
+    -- “软错误” 目标不可到达，不管是路由返回的ICMP还是本机发现目标不可到达，都会进行重连（等待一段时间），返回 ***unreach错误；
+    -- “超时“ 一直无响应
+    */
     if(res == -1)
     {
         cout << errno << endl;

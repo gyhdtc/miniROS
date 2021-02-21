@@ -8,8 +8,12 @@ class Server {
         int _port;
         char *_ip;
         int socket_fd;
+        /* learn3 */
         struct sockaddr_in addr;
         struct sockaddr_in client;
+        /*
+        -- ipv4 地址协议族结构体
+        */
 
         void ServerInit();
         void ServerBindIpAndPort();
@@ -21,7 +25,7 @@ class Server {
 };
 
 void Server::ServerInit() {
-    /* learn */
+    /* learn4 */
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     /*
     -- 创建socket文件描述符
@@ -45,10 +49,10 @@ void Server::ServerInit() {
 }
 
 void Server::ServerBindIpAndPort() {
-    /* learn */
+    /* learn5 */
     int res = bind(socket_fd, (struct sockaddr*)&addr, sizeof(addr));
     /*
-    -- 把一个ipv4或ipv6地址和端口号组合赋给socket
+    -- 把一个ipv4或ipv6地址和端口号组合赋给socket，从 进程 到 内核
     -- 参数1：socket文件描述符
     -- 参数2：addr是一个结构体，里面描述了要绑定给socket文件描述符的协议族、ip和port
     --      没个协议族都不一样，上面 [36-41] 行描述的是ipv4的，ipv6的是sockaddr_in6：
@@ -57,12 +61,16 @@ void Server::ServerBindIpAndPort() {
             uint32_t        sin6_flowinfo;  IPv6 flow information 
             struct in6_addr sin6_addr;      IPv6 address 
             uint32_t        sin6_scope_id;  Scope ID (new in 2.4)
+    --      注意参数2,他是一个通用地址结构！其内部成员从高到底包括：
+    --      uint8 的结构体长度、sa family t 的协议族、和14个char类型数组
+    --      因为是通过指针传递，寻址又是通过偏移量，所以这样所完全 ok。
     -- 参数3：上述结构体的长度
     -- 注意：通常服务器在启动的时候都会绑定一个众所周知的地址（如ip地址+端口号）
     --      用于提供服务客户就可以通过它来接连服务器
     --      而客户端就不用指定，有系统自动分配一个端口号和自身的ip地址组合。
     --      这就是为什么通常服务器端在listen之前会调用bind()
-    --      而客户端就不会调用，而是在connect()时由系统随机生成一个。 
+    --      而客户端就不会调用，而是在connect()时由系统随机生成一个。
+    -- 注意：内核可以指定 ip 和 port！ 
     */
     if (res == -1)
     {

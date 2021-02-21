@@ -241,14 +241,14 @@ void Master::CreateServer() {
 }
 
 void Master::WaitForConnect() {
-    /* learn */
+    /* learn1 */
     listen(socket_fd, 300);
     /*
     -- 参数2：socket可排队最大连接个数
     */
     socklen_t len = sizeof(client);
     while (1) {
-        /* learn */
+        /* learn2 */
         int fd = accept(socket_fd, (struct sockaddr*)&client, &len);
         /*
         -- 已连接的socket描述字
@@ -268,6 +268,7 @@ void Master::WaitForConnect() {
         /* header.h : serverparam */
         thread t1(_sf, sp);
         t1.detach();
+        // close(fd);
     }
 }
 
