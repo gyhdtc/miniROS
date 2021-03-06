@@ -9,6 +9,9 @@ unordered_map<int, unordered_set<int>> um1;
 unordered_map<int, unordered_set<int>> um2;
 int minv = 10000000;
 bool vis[10000001] = {false};
+// 初始位置的地铁线路编号     num
+//                终点     t
+//            线路数量     cnt
 void dfs(int num, int t, int cnt) {
     if (cnt >= minv) {
         return ;
@@ -33,21 +36,23 @@ int main() {
     int t = 0;
     cin >> t;
     while (t--) {
-        int n, s, t;
-        cin >> n >> s >> t;
+        int ditienum, s, t;
+        cin >> ditienum >> s >> t;
         vector<int> res;
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < ditienum; ++i) {
             int k = 0, a;
             cin >> k;
             for (int j = 0; j < k; ++j) {
+                // 一堆站台编号
                 cin >> a;
-                if (a == s) {
+                if (a == s) { // 记录初始位置所在的地铁线
                     res.push_back(i);
                 }
-                um1[i].insert(a);
-                um2[a].insert(i);
+                um1[i].insert(a); // 地铁线路 --- 站台s
+                um2[a].insert(i); // 站台 --- 地铁线路s
             }
         }
+        // 遍历地铁线
         for (int y : res) {
             dfs(y, t, 1);
         }
