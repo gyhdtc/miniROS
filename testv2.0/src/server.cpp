@@ -3,9 +3,10 @@
 #include <unistd.h>
 #include <iostream>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <errno.h>
 #include <queue>
+#include <signal.h>
 #include <string>
 #include <algorithm>
 #include <netinet/in.h>
@@ -14,9 +15,14 @@
 #include <sys/types.h>
 using namespace std;
 
+int KeepRunning = 1;
+#define state_close 0;
+#define state_connect 1;
+#define state_disconnect 2;
+typedef int State;
 class Master;
 
-void ConnectHandle(Master&);
+void ConnectHandle(Master&, int, struct sockaddr_in);
 
 class Message {
 
@@ -32,11 +38,11 @@ private:
     string Nip;
     int Nport;
     int ConnectFd;
+    State state = state_close;
     queue<Message> NodeMsgQueue;
 };
 
 class Master {
-typedef int socket_type;
 public:
     Master() {
         cout << "Master start!" << endl;
@@ -60,7 +66,7 @@ private:
     struct sockaddr_in clientaddr;
     queue<Message> MsgQueue;
     vector<Node> NodeList;
-    vector<socket_type*> ConnectSocketList;
+    vector<int> ConnectSocketList;
 };
 void Master::ServerInit() {
     try
@@ -86,6 +92,7 @@ void Master::ServerInit() {
     catch(const char* e)
     {
         std::cerr << e << '\n';
+        exit(-1);
     }
 }
 void Master::ServerListen() {
@@ -93,26 +100,49 @@ void Master::ServerListen() {
     socklen_t clientsocketlen = sizeof(clientaddr);
     while (1)
     {
-        // thread t(ConnectHandle, ref(*this));
-        // t.detach();
         int connectFd = accept(SocketFd, (struct sockaddr*)&clientaddr, &clientsocketlen);
         if (connectFd == -1) {
             cout << errno << " [accept wrong]" << '\n';
             continue;
         }
-        cout << "new connect!\n";
-        thread t(ConnectHandle, ref(*this));
+        
+        thread t(ConnectHandle, ref(*this), connectFd, clientaddr);
         t.detach();
-        // thread t(&Master::ConnectHandl, this);
     }
 }
-void ConnectHandle(Master& m) {
-    cout << m.MasterIp() << '\n';
+
+void ConnectHandle(Master& m, int connectFd, struct sockaddr_in clientaddr) {
+    // cout << "start handle new connect!\n";
+    // cout << connectFd << endl;
+    // cout << inet_ntoa(clientaddr.sin_addr) << endl;
+    // cout << clientaddr.sin_port << endl;
+    // char *buffer = new char[100];
+    // int RecvMsgLen = 0;
+    // while (!((RecvMsgLen = read(connectFd, buffer, sizeof(buffer))) <= 0))
+    // close(connectFd);
+    // delete []buffer;
+    // cout << "end connect!\n";
+    /*
+    服务器连接到节点之后的处理函数
+    1. 转发数据
+    2. 接收数据
+    */
 }
+
+void SigThread(int sig) {
+    if (sig == SIGINT || sig == SIGSTOP)
+    {
+        KeepRunning = 0;
+        cout << endl;
+    }
+}
+
 int main() {
     string ip = "127.0.0.1";
     int port = 8000;
     Master m(ip, port);
     m.ServerInit();
     m.ServerListen();
+    signal(SIGINT, SigThread);
+    while (KeepRunning);
 }
