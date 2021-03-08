@@ -1,27 +1,7 @@
-#include <thread>
-#include <stdio.h>
-#include <unistd.h>
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-#include <errno.h>
-#include <queue>
-#include <signal.h>
-#include <string>
-#include <algorithm>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-using namespace std;
-int KeepRunning = 1;
-class Client;
+#include "../include/header.h"
 
 void ConnectHandle(Client&, int);
-
-class Message {
-
-};
+string zhuce(Client&, string);
 
 class Node {
 public:
@@ -30,16 +10,19 @@ public:
     Node(const Node& node) : 
     Nip(node.Nip), Nport(node.Nport), ConnectFd(node.ConnectFd), 
     SendMsgQueue(node.SendMsgQueue), RecvMsgQueue(node.RecvMsgQueue),
-    DingYue(node.DingYue), FaBu(node.FaBu) {}
+    DingYueTopic(node.DingYueTopic), FaBuTopic(node.FaBuTopic) {}
 
+    uint32_t GetIndex() { return Index; }
 private:
+    uint32_t Index;
     string Nip;
     int Nport;
     int ConnectFd;
-    queue<Message> SendMsgQueue;
-    queue<Message> RecvMsgQueue;
-    unordered_map<string, int> DingYue;
-    unordered_map<string, int> FaBu;
+    mutex mut;
+    queue<Data> SendMsgQueue;
+    queue<Data> RecvMsgQueue;
+    vector<string> DingYueTopic;
+    vector<string> FaBuTopic;
 };
 
 class Client
@@ -49,8 +32,8 @@ private:
     int Port;
     int SocketFd;
     struct sockaddr_in clientaddr;
-    Node MyNode;
 public:
+    Node MyNode;
     Client() {
         cout << "Client start!" << endl;
     }
@@ -93,7 +76,7 @@ void Client::Connect() {
     catch(const char* e)
     {
         std::cerr << e << '\n';
-        exit(-1);
+        // exit(-1);
     }
 
     thread t(ConnectHandle, ref(*this), SocketFd);
@@ -113,6 +96,49 @@ void ConnectHandle(Client& c, int socketfd) {
     5. 数据默认无序；
     6. 节点注册
     */
+    /* 1.节点注册 --- 接收节点编号 */
+    cout << socketfd << " connect server\n";
+    string name("gyh-123");
+    zhuce(c, name);
+    close(socketfd);
+    cout << socketfd << " disconnect server\n";
+}
+uint8_t codeGenera(string msg) {
+    uint8_t res = 0;
+    return res;
+}
+Head HeadGenera(uint32_t index, Data data, msg_type msgtype) {
+    Head h;
+    h.type = msgtype;
+    h.check_code = codeGenera(data.data);
+    uint8_t machine_num = msgtype == reg ? 0 : 1;
+    while (index != 1 && msgtype != reg) {
+        machine_num *= 2;
+        index >> 1;
+    }
+    h.machine_num = machine_num;
+    h.data_len = data.data.size();
+    h.rand_num = rand()%256;
+    h.data_type = data.DataType;
+    
+    cout << sizeof(h) << endl;
+
+    return h;
+}
+string zhuce(Client& c, string msg) {
+    string regmsg;
+    Data data;
+    data.DataType  = 0x00000000;
+    data.DataType = data.DataType | 0x00000001 | ((uint8_t(msg.size()))<<8);    
+    data.data = msg;
+
+    cout << data.DataType << endl;
+
+    Head h = HeadGenera(c.MyNode.GetIndex(), data, reg);
+    return regmsg;
+}
+Data MessageGenera() {
+
 }
 
 void SigThread(int sig) {
@@ -130,4 +156,5 @@ int main() {
     c.Connect();
     signal(SIGINT, SigThread);
     while (KeepRunning);
+    return 0;
 }

@@ -1,45 +1,19 @@
-#include <thread>
-#include <stdio.h>
-#include <unistd.h>
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-#include <errno.h>
-#include <queue>
-#include <signal.h>
-#include <string>
-#include <algorithm>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-using namespace std;
-
-int KeepRunning = 1;
-#define state_close 0;
-#define state_connect 1;
-#define state_disconnect 2;
-typedef int State;
-class Master;
+#include "../include/header.h"
 
 void ConnectHandle(Master&, int, struct sockaddr_in);
-
-class Message {
-
-};
 
 class Node {
 public:
     Node() = default;
     Node(string ip, int port) : Nip(ip), Nport(port) {}
     Node(const Node& node) : Nip(node.Nip), Nport(node.Nport), ConnectFd(node.ConnectFd), NodeMsgQueue(node.NodeMsgQueue) {}
-
 private:
+    uint32_t Index;
     string Nip;
     int Nport;
     int ConnectFd;
     State state = state_close;
-    queue<Message> NodeMsgQueue;
+    queue<Data> NodeMsgQueue;
 };
 
 class Master {
@@ -64,9 +38,9 @@ private:
     int SocketFd;
     struct sockaddr_in serveraddr;
     struct sockaddr_in clientaddr;
-    queue<Message> MsgQueue;
-    vector<Node> NodeList;
-    vector<int> ConnectSocketList;
+    queue<Data> MsgQueue;
+    unordered_map<string, Node> NodeList;
+    vector<Topic> TopicList; 
 };
 void Master::ServerInit() {
     try
@@ -124,9 +98,18 @@ void ConnectHandle(Master& m, int connectFd, struct sockaddr_in clientaddr) {
     // cout << "end connect!\n";
     /*
     服务器连接到节点之后的处理函数
-    1. 转发数据
-    2. 接收数据
+    1. 接收节点注册信息 --- 存储信息，返回节点编号
     */
+    cout << "start handle new connect!\n";
+    cout << connectFd << endl;
+    cout << inet_ntoa(clientaddr.sin_addr) << endl;
+    cout << clientaddr.sin_port << endl;
+    char *buffer = new char[100];
+    int RecvMsgLen = 0;
+    while (!((RecvMsgLen = read(connectFd, buffer, sizeof(buffer))) <= 0))
+    close(connectFd);
+    delete []buffer;
+    cout << "end connect!\n";
 }
 
 void SigThread(int sig) {
@@ -145,4 +128,5 @@ int main() {
     m.ServerListen();
     signal(SIGINT, SigThread);
     while (KeepRunning);
+    return 0;
 }
