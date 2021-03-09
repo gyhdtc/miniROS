@@ -1,30 +1,28 @@
 #include "../include/header.h"
 
 void ConnectHandle(Client&, int);
-string zhuce(Client&, string);
+msg_packet zhuce(uint8_t, string);
 
 class Node {
 public:
     Node() = default;
     Node(string ip, int port) : Nip(ip), Nport(port) {}
-    Node(const Node& node) : 
-    Nip(node.Nip), Nport(node.Nport), ConnectFd(node.ConnectFd), 
-    SendMsgQueue(node.SendMsgQueue), RecvMsgQueue(node.RecvMsgQueue),
-    DingYueTopic(node.DingYueTopic), FaBuTopic(node.FaBuTopic) {}
-
+    // Node(const Node& node) : Nip(node.Nip), Nport(node.Nport), ConnectFd(node.ConnectFd), SendMsgQueue(node.SendMsgQueue), RecvMsgQueue(node.RecvMsgQueue), DingYueTopic(node.DingYueTopic), FaBuTopic(node.FaBuTopic) {}
     uint32_t GetIndex() { return Index; }
 private:
-    uint32_t Index;
+    uint32_t Index = 0x00000000;
+    string NodeName;
     string Nip;
     int Nport;
     int ConnectFd;
     mutex mut;
-    queue<Data> SendMsgQueue;
+    // 发送的是编码好的，带头的
+    queue<msg_packet> SendMsgQueue;
+    // 接收的应该是解码好的 Data
     queue<Data> RecvMsgQueue;
-    vector<string> DingYueTopic;
-    vector<string> FaBuTopic;
+    unordered_map<string, uint8_t> DingYueTopic;
+    unordered_map<string, uint8_t> FaBuTopic;
 };
-
 class Client
 {
 private:
@@ -34,21 +32,15 @@ private:
     struct sockaddr_in clientaddr;
 public:
     Node MyNode;
-    Client() {
-        cout << "Client start!" << endl;
-    }
-    Client(string ip, int port) : Ip(ip), Port(port) {
-        cout << "Client start!" << endl;
-    }
+    Client() { cout << "Client start!" << endl; }
+    Client(string ip, int port) : Ip(ip), Port(port) { cout << "Client start!" << endl; }
     ~Client() {
         close(SocketFd);
         cout << "Bye~ Client!" << endl;
     }
-
     void ClientInit();
     void Connect();
 };
-
 void Client::ClientInit() {
     try
     {
@@ -64,8 +56,8 @@ void Client::ClientInit() {
     clientaddr.sin_addr.s_addr = inet_addr(Ip.c_str());
     clientaddr.sin_port = htons(Port);
 }
-
 void Client::Connect() {
+    
     try
     {
         int connectflag = connect(SocketFd, (struct sockaddr*)&clientaddr, sizeof(clientaddr));
@@ -76,78 +68,61 @@ void Client::Connect() {
     catch(const char* e)
     {
         std::cerr << e << '\n';
-        // exit(-1);
+        exit(-1);
     }
 
     thread t(ConnectHandle, ref(*this), SocketFd);
     t.detach();
 }
 
-void ConnectHandle(Client& c, int socketfd) {
-    // cout << socketfd << " connect server\n";
-    // close(socketfd);
-    // cout << socketfd << " disconnect server\n";
-    /*
-    客户端连接上服务器之后的处理函数
-    1. 心跳包，断线重连;
-    2. 发送数据，client->mynode中的sendqueue非空就发送;
-    3. 接收数据，存放到client->mynode中的recvqueue；
-    4. 发送失败回调函数；
-    5. 数据默认无序；
-    6. 节点注册
-    */
+void ConnectHandle(Client& c, int SocketFd) {
     /* 1.节点注册 --- 接收节点编号 */
-    cout << socketfd << " connect server\n";
-    string name("gyh-123");
-    zhuce(c, name);
-    close(socketfd);
-    cout << socketfd << " disconnect server\n";
-}
-uint8_t codeGenera(string msg) {
-    uint8_t res = 0;
-    return res;
-}
-Head HeadGenera(uint32_t index, Data data, msg_type msgtype) {
-    Head h;
-    h.type = msgtype;
-    h.check_code = codeGenera(data.data);
-    uint8_t machine_num = msgtype == reg ? 0 : 1;
-    while (index != 1 && msgtype != reg) {
-        machine_num *= 2;
-        index >> 1;
+    cout << SocketFd << " connect server\n";
+
+    for (int i = 0; i < 10; ++i) {
+        // thread t(shittestthread, ref(c), SocketFd, i);
+        // t.detach();
+        cout << "[注册]\n";
+        string name("gyh-");
+        name += to_string(i);
+        msg_packet mp = zhuce(c.MyNode.GetIndex(), name);
+        char* t = new char[mp.size()];
+        write(SocketFd, (const uint8_t*)&mp[0], mp.size());
+        out((uint8_t*)&mp[0], mp.size());
     }
-    h.machine_num = machine_num;
-    h.data_len = data.data.size();
-    h.rand_num = rand()%256;
-    h.data_type = data.DataType;
     
-    cout << sizeof(h) << endl;
-
-    return h;
+    while (1);
+    close(SocketFd);
+    cout << SocketFd << " disconnect server\n";
 }
-string zhuce(Client& c, string msg) {
-    string regmsg;
-    Data data;
-    data.DataType  = 0x00000000;
-    data.DataType = data.DataType | 0x00000001 | ((uint8_t(msg.size()))<<8);    
-    data.data = msg;
-
-    cout << data.DataType << endl;
-
-    Head h = HeadGenera(c.MyNode.GetIndex(), data, reg);
-    return regmsg;
-}
-Data MessageGenera() {
-
-}
-
-void SigThread(int sig) {
-    if (sig == SIGINT || sig == SIGSTOP)
-    {
-        KeepRunning = 0;
-        cout << endl;
+// 数据流生成器，需要多个重载，此重载只针对 string 类型数据流
+void DataGenera(Data& d, string s) {
+    if (s.size() >= 255) s = s.substr(0, 255);
+    for (int i = 0; i < s.size(); ++i) {
+        d.charlist.push_back(s[i]);
+        d.databytestream.push_back(uint8_t(s[i]));
     }
 }
+// 节点注册：需要 本机当前序列号，本机名字, 数据类型（普通、图像、坐标）
+// 节点注册：返回一个 vector<uint8_t> 类型的 msg_packet，用来传输
+msg_packet zhuce(uint8_t index, string msg) {
+    msg_packet mp;
+    
+    Data data;
+    DataGenera(data, msg);
+    DataTypeGenera(data);
+    vector<uint8_t> headbytestream = HeadGenera(index, data, reg);
+    if (headbytestream.size() != 5) {
+        cout << "head genera false\n";
+        return mp;
+    }
+    Combine(mp, headbytestream);
+    Combine(mp, data.DataType);
+    Combine(mp, vector<uint8_t>(1,0x00));
+    Combine(mp, data.databytestream);
+    return mp;
+}
+
 int main() {
     string mip = "127.0.0.1";
     int mport = 8000;

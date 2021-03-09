@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <ctype.h>
 using namespace std;
 
 class shittest
@@ -46,18 +47,8 @@ void func(shittest h)
 
 int main()
 {
-    while (1)
-    {
-        cout << 0 << endl;
-        int a = 1;
-        shittest* b = new shittest("b");
-        // b->x = &a;
-        cout << 1 << endl;
-        func(*b);
-        cout << 2 << endl;
-        // cout << *b->x << endl;
-        // delete b;
-        cin >> a;
-    }
+    uint8_t t[4] = {1,2,3,4};
+    uint32_t a = uint8_t(t);
+    cout << a << endl;
     return 0;
 }

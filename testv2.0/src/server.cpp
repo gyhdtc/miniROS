@@ -86,38 +86,43 @@ void Master::ServerListen() {
 }
 
 void ConnectHandle(Master& m, int connectFd, struct sockaddr_in clientaddr) {
-    // cout << "start handle new connect!\n";
-    // cout << connectFd << endl;
-    // cout << inet_ntoa(clientaddr.sin_addr) << endl;
-    // cout << clientaddr.sin_port << endl;
-    // char *buffer = new char[100];
-    // int RecvMsgLen = 0;
-    // while (!((RecvMsgLen = read(connectFd, buffer, sizeof(buffer))) <= 0))
-    // close(connectFd);
-    // delete []buffer;
-    // cout << "end connect!\n";
     /*
     服务器连接到节点之后的处理函数
     1. 接收节点注册信息 --- 存储信息，返回节点编号
     */
     cout << "start handle new connect!\n";
-    cout << connectFd << endl;
-    cout << inet_ntoa(clientaddr.sin_addr) << endl;
+    cout << connectFd << "--";
+    cout << inet_ntoa(clientaddr.sin_addr) << ":";
     cout << clientaddr.sin_port << endl;
-    char *buffer = new char[100];
+    char *buffer = new char[265];
     int RecvMsgLen = 0;
-    while (!((RecvMsgLen = read(connectFd, buffer, sizeof(buffer))) <= 0))
+    while (1) {
+        RecvMsgLen = read(connectFd, buffer, headlength);
+        if (RecvMsgLen <= 0) break;
+        else {
+            if (RecvMsgLen >= headlength) {
+                // 分析头部
+                // out((uint8_t*)buffer, RecvMsgLen);
+                Head head;
+                GetHead(head, buffer);
+                cout << head.data_len << endl;
+                int RecvMsgLen2 = read(connectFd, buffer + RecvMsgLen, head.data_len);
+                out((uint8_t*)buffer, RecvMsgLen + RecvMsgLen2);
+            }
+            else {
+                // 接收剩下的头
+                int remain = headlength - RecvMsgLen;
+                RecvMsgLen = read(connectFd, buffer+RecvMsgLen, remain);
+                if (RecvMsgLen >= remain) {
+                    // 分析头部
+                    out((uint8_t*)buffer, RecvMsgLen);
+                }
+            }
+        }
+    }
     close(connectFd);
     delete []buffer;
     cout << "end connect!\n";
-}
-
-void SigThread(int sig) {
-    if (sig == SIGINT || sig == SIGSTOP)
-    {
-        KeepRunning = 0;
-        cout << endl;
-    }
 }
 
 int main() {
