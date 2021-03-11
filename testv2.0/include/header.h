@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <queue>
 #include <mutex>
+#include <memory>
 #include <signal.h>
 #include <bitset>
 #include <stdarg.h>
@@ -36,14 +37,19 @@ typedef uint8_t msg_type;
 #define dat 0x20
 #define headlength 10
 typedef uint8_t data_type;
-
+#define MAX_BUFFER_SIZE 265
 
 typedef vector<uint8_t> msg_packet;
 
 class Client;
 class Master;
+class Data;
+class Head;
+struct Topic;
+
 msg_packet zhuce(uint8_t, string);
 void DataGenera(Data&, string);
+void MsgHandle(Head, shared_ptr<char>);
 
 class Data {
 public:
@@ -164,13 +170,13 @@ void SigThread(int sig) {
     }
 }
 
-void shittestthread(Client& c, int SocketFd, int i) {
-    cout << "[注册]\n";
-    string name("gyh-");
-    for (int j = 0; j < 100; ++j)
-        name += to_string(i);
-    msg_packet mp = zhuce(c.MyNode.GetIndex(), name);
-    char* t = new char[mp.size()];
-    write(SocketFd, (const uint8_t*)&mp[0], mp.size());
-    out((uint8_t*)&mp[0], mp.size());
-}
+// void shittestthread(Client& c, int SocketFd, int i) {
+//     cout << "[注册]\n";
+//     string name("gyh-");
+//     for (int j = 0; j < 100; ++j)
+//         name += to_string(i);
+//     msg_packet mp = zhuce(c.MyNode.GetIndex(), name);
+//     char* t = new char[mp.size()];
+//     write(SocketFd, (const uint8_t*)&mp[0], mp.size());
+//     out((uint8_t*)&mp[0], mp.size());
+// }

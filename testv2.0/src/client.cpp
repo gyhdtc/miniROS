@@ -1,7 +1,7 @@
 #include "../include/header.h"
 
 void ConnectHandle(Client&, int);
-msg_packet zhuce(uint8_t, string);
+void zhuce(Client&, int);
 
 class Node {
 public:
@@ -18,6 +18,8 @@ private:
     mutex mut;
     // 发送的是编码好的，带头的
     queue<msg_packet> SendMsgQueue;
+    // 发送数据的缓存，int --- msg_packet 的映射，收到对应的ack则删除
+    unordered_map<int, msg_packet> ReSendMsgCache;
     // 接收的应该是解码好的 Data
     queue<Data> RecvMsgQueue;
     unordered_map<string, uint8_t> DingYueTopic;
@@ -76,22 +78,9 @@ void Client::Connect() {
 }
 
 void ConnectHandle(Client& c, int SocketFd) {
-    /* 1.节点注册 --- 接收节点编号 */
+    /* 1.节点注册 ---> 接收节点编号 */
     cout << SocketFd << " connect server\n";
-
-    for (int i = 0; i < 10; ++i) {
-        // thread t(shittestthread, ref(c), SocketFd, i);
-        // t.detach();
-        cout << "[注册]\n";
-        string name("gyh-");
-        name += to_string(i);
-        msg_packet mp = zhuce(c.MyNode.GetIndex(), name);
-        char* t = new char[mp.size()];
-        write(SocketFd, (const uint8_t*)&mp[0], mp.size());
-        out((uint8_t*)&mp[0], mp.size());
-    }
-    
-    while (1);
+    zhuce(c, SocketFd);
     close(SocketFd);
     cout << SocketFd << " disconnect server\n";
 }
@@ -105,22 +94,30 @@ void DataGenera(Data& d, string s) {
 }
 // 节点注册：需要 本机当前序列号，本机名字, 数据类型（普通、图像、坐标）
 // 节点注册：返回一个 vector<uint8_t> 类型的 msg_packet，用来传输
-msg_packet zhuce(uint8_t index, string msg) {
+void zhuce(Client& c, int SocketFd) {
+    cout << "[注册]\n";
+
     msg_packet mp;
-    
     Data data;
-    DataGenera(data, msg);
+    string name("gyh-1");
+    uint32_t index = c.MyNode.GetIndex();
+
+    DataGenera(data, name);
     DataTypeGenera(data);
     vector<uint8_t> headbytestream = HeadGenera(index, data, reg);
     if (headbytestream.size() != 5) {
         cout << "head genera false\n";
-        return mp;
+        return;
     }
     Combine(mp, headbytestream);
     Combine(mp, data.DataType);
     Combine(mp, vector<uint8_t>(1,0x00));
     Combine(mp, data.databytestream);
-    return mp;
+
+    char* t = new char[mp.size()];
+    write(SocketFd, (const uint8_t*)&mp[0], mp.size());
+    out((uint8_t*)&mp[0], mp.size());
+    return;
 }
 
 int main() {

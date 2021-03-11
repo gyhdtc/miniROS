@@ -42,6 +42,7 @@ private:
     unordered_map<string, Node> NodeList;
     vector<Topic> TopicList; 
 };
+
 void Master::ServerInit() {
     try
     {
@@ -68,6 +69,8 @@ void Master::ServerInit() {
         std::cerr << e << '\n';
         exit(-1);
     }
+
+    /* 开启数据转发线程 */
 }
 void Master::ServerListen() {
     listen(SocketFd, 30);
@@ -86,43 +89,62 @@ void Master::ServerListen() {
 }
 
 void ConnectHandle(Master& m, int connectFd, struct sockaddr_in clientaddr) {
-    /*
-    服务器连接到节点之后的处理函数
-    1. 接收节点注册信息 --- 存储信息，返回节点编号
-    */
     cout << "start handle new connect!\n";
-    cout << connectFd << "--";
-    cout << inet_ntoa(clientaddr.sin_addr) << ":";
-    cout << clientaddr.sin_port << endl;
-    char *buffer = new char[265];
-    int RecvMsgLen = 0;
+    cout << connectFd << "--" << inet_ntoa(clientaddr.sin_addr) << ":" << clientaddr.sin_port << endl;
+    char *buffer = new char[MAX_BUFFER_SIZE];
     while (1) {
-        RecvMsgLen = read(connectFd, buffer, headlength);
-        if (RecvMsgLen <= 0) break;
+        int RecvMsgLen = 0;
+        shared_ptr<char> real_msg(new char[MAX_BUFFER_SIZE]);
+        Head head;
+        int RecvMsgLen1 = read(connectFd, buffer, headlength);
+        if (RecvMsgLen1 <= 0)
+            break;
         else {
-            if (RecvMsgLen >= headlength) {
+            if (RecvMsgLen1 >= headlength) {
                 // 分析头部
                 // out((uint8_t*)buffer, RecvMsgLen);
-                Head head;
                 GetHead(head, buffer);
-                cout << head.data_len << endl;
-                int RecvMsgLen2 = read(connectFd, buffer + RecvMsgLen, head.data_len);
-                out((uint8_t*)buffer, RecvMsgLen + RecvMsgLen2);
+                // cout << head.data_len << endl;
+                int RecvMsgLen2 = read(connectFd, buffer + RecvMsgLen, head.data_len - (RecvMsgLen - headlength));
+                out((uint8_t*)buffer, RecvMsgLen1 + RecvMsgLen2);
+                // 目前为止，buffer中存储了10字节的头部，和所有的消息
+                // 总字节长度 ： RecvMsgLen1 + RecvMsgLen2
+                RecvMsgLen = RecvMsgLen1 + RecvMsgLen2;
             }
             else {
                 // 接收剩下的头
                 int remain = headlength - RecvMsgLen;
-                RecvMsgLen = read(connectFd, buffer+RecvMsgLen, remain);
-                if (RecvMsgLen >= remain) {
+                int RecvMsgLen2 = read(connectFd, buffer + RecvMsgLen1, remain);
+                if (RecvMsgLen2 >= remain) {
                     // 分析头部
-                    out((uint8_t*)buffer, RecvMsgLen);
+                    // out((uint8_t*)buffer, RecvMsgLen);
+                    GetHead(head, buffer);
+                    int RecvMsgLen3 = read(connectFd, buffer + RecvMsgLen1 + RecvMsgLen2, head.data_len - (RecvMsgLen1 + RecvMsgLen2 - headlength));
+                    out((uint8_t*)buffer, RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3);
+                    // 目前为止，buffer中存储了10字节的头部，和所有的消息
+                    // 总字节长度 ： RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3
+                    RecvMsgLen = RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3;
                 }
             }
         }
+        /* 接下来应该对消息进行处理 */
+        /* 现将数据复制到 real_msg 指针（报文和头部分开），再对buffer清零，再开启一个线程进行处理 */
+        memcpy(real_msg.get(), buffer+headlength, RecvMsgLen-headlength);
+        thread t(MsgHandle, head, real_msg);
+        t.detach();
     }
     close(connectFd);
     delete []buffer;
     cout << "end connect!\n";
+}
+void MsgHandle(Head head, shared_ptr<char> a) {
+    /* 这里应该根据报文头部第一字节的数据 */
+    /* 对报文进行一个详细的划分 */
+    /* 1.首先应该返回一个确认收到的响应 */
+    /* 2.如果是节点订阅话题、发布话题和注册，应该先将他们加入map，生成识别码，并返回 */
+    /* 3.如果是心跳包，则返回收到心跳包响应 */
+    /* 4.如果是数据，则保存下来之后，加入到数据队列中，由那个数据队列线程进行分发 */
+    
 }
 
 int main() {
