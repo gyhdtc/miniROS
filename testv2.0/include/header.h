@@ -169,14 +169,3 @@ void SigThread(int sig) {
         cout << endl;
     }
 }
-
-// void shittestthread(Client& c, int SocketFd, int i) {
-//     cout << "[注册]\n";
-//     string name("gyh-");
-//     for (int j = 0; j < 100; ++j)
-//         name += to_string(i);
-//     msg_packet mp = zhuce(c.MyNode.GetIndex(), name);
-//     char* t = new char[mp.size()];
-//     write(SocketFd, (const uint8_t*)&mp[0], mp.size());
-//     out((uint8_t*)&mp[0], mp.size());
-// }
