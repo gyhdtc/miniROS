@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <iostream>
 
 #define MAXSIZE     1024
 #define IPADDRESS   "127.0.0.1"
@@ -24,12 +25,12 @@ static void add_event(int epollfd, int fd, int state);
 static void delete_event(int epollfd, int fd, int state);
 static void modify_event(int epollfd, int fd, int state);
 
-int main(int argc, char *argv[])
+int main()
 {
     int sockfd;
     struct sockaddr_in  servaddr;
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    bzero(&servaddr, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(SERV_PORT);
     inet_pton(AF_INET, IPADDRESS, &servaddr.sin_addr);
@@ -39,8 +40,6 @@ int main(int argc, char *argv[])
     close(sockfd);
     return 0;
 }
-
-
 static void handle_connection(int sockfd)
 {
     int epollfd;

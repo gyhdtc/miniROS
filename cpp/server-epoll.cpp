@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string>
+#include <string.h>
 #include <memory.h>
 
 #include <netinet/in.h>
@@ -10,6 +10,8 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <iostream>
+using namespace std;
 
 #define IPADDRESS   "127.0.0.1"
 #define PORT        8787
@@ -58,7 +60,7 @@ int socket_bind(const char* ip,int port) {
     // 给结构体赋值，转换格式
     serveraddr.sin_family = AF_INET;
     inet_pton(AF_INET, ip, &serveraddr.sin_addr);
-    serveraddr.sin_port = htonl(port);
+    serveraddr.sin_port = htons(port);
     if (bind(listenfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) == -1) {
         perror("bind error\n");
         exit(1);
@@ -76,6 +78,7 @@ void do_epoll(int listenfd) {
     add_event(epollfd, listenfd, EPOLLIN);
     while (1) {
         ret = epoll_wait(epollfd, events, EPOLLEVENTS, -1);
+        
         handle_events(epollfd, events, ret, listenfd, buffer);
     }
     close(epollfd);
@@ -86,6 +89,7 @@ void handle_events(int epollfd, struct epoll_event *events, int num, int listenf
         fd = events[i].data.fd;
         if ( (fd == listenfd) && (events[i].events & EPOLLIN) ) {
             // listenfd 有新连接
+            cout << "1" << endl;
             handle_accpet(epollfd, listenfd);
         }
         else if (events[i].events & EPOLLIN) {
@@ -101,14 +105,14 @@ void handle_events(int epollfd, struct epoll_event *events, int num, int listenf
 void handle_accpet(int epollfd, int listenfd) {
     int newconnectfd;
     struct sockaddr_in newconnectaddr;
-    socklen_t newconnectlen;
+    socklen_t newconnectlen = sizeof(struct sockaddr);
     newconnectfd = accept(listenfd, (struct sockaddr*)&newconnectaddr, &newconnectlen);
     if (newconnectfd == -1) {
         perror("accpet error\n");
     }
     else {
         printf("accept a new client: %s:%d\n", inet_ntoa(newconnectaddr.sin_addr), newconnectaddr.sin_port);
-        add_event(epollfd, listenfd, EPOLLIN);
+        add_event(epollfd, newconnectfd, EPOLLIN);
     }
 }
 void do_read(int epollfd, int fd, char *buf) {
@@ -125,7 +129,7 @@ void do_read(int epollfd, int fd, char *buf) {
         delete_event(epollfd, fd, EPOLLIN);
     }
     else {
-        printf("read message is : %s\n", buf);
+        printf("read message is : %s", buf);
         // 修改当前连接为写，因为是回射服务器嘛
         modify_event(epollfd, fd, EPOLLOUT);
     }
@@ -139,7 +143,7 @@ void do_write(int epollfd, int fd, char *buf) {
         delete_event(epollfd, fd, EPOLLOUT);
     }
     else {
-        modify_event(epollfd, fd, EPOLLOUT);
+        modify_event(epollfd, fd, EPOLLIN);
     }
     memset(buf, 0, MAXSIZE);
 }
