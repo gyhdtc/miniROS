@@ -45,7 +45,7 @@ int main() {
     do_epoll(listenfd);
     return 0;
 }
-int socktet_bind(const char* ip,int port) {
+int socket_bind(const char* ip,int port) {
     int listenfd;
     struct sockaddr_in serveraddr;
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
