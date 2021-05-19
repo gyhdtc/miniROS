@@ -88,8 +88,6 @@ private:
     vector<string> subTopicList; // 节点订阅的话题
     vector<string> pubTopicList; // 节点发布的话题
 public:
-    void serverbind();
-    void serverlisten();    
     Node::Node(string ip, int port, int fd)
     {
         nodeIp = ip;
@@ -166,6 +164,8 @@ void AccpetThread(Broke* b) {
             printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);
             // 新的客户端连接
             // 给他创建两个线程，分别 读/写
+            thread t(ReadThread, b, clifd, cliaddr);
+            t.detach();
         }
     }
 }
