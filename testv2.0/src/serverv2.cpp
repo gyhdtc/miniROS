@@ -80,6 +80,7 @@ int Server::Accept(struct sockaddr_in& cliaddr) {
 class Node
 {
 private:
+    int State;
     string nodeIp;
     int nodePort;
     string nodeName;
