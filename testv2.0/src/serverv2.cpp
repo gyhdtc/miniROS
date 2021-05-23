@@ -29,7 +29,7 @@ using namespace std;
 #define EPOLLEVENTS 100
 
 void AccpetThread(Broke*);
-void ReadThread(Broke*, int, struct sockaddr_in);
+void ConnectThread(Broke*, int, sockaddr_in);
 
 class Server
 {
@@ -164,7 +164,7 @@ void AccpetThread(Broke* b) {
             printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);
             // 新的客户端连接
             // 给他创建两个线程，分别 读/写
-            thread t(ReadThread, b, clifd, cliaddr);
+            thread t(ConnectThread, b, clifd, cliaddr);
             t.detach();
         }
     }
