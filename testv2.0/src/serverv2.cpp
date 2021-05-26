@@ -27,6 +27,23 @@ using namespace std;
 #define LISTENQ     5
 #define FDSIZE      1000
 #define EPOLLEVENTS 100
+// 定义 node 状态
+#define newconnect 1
+#define connecting 2
+#define connected 3
+#define connect_wait 4
+#define close_1 5
+#define close_2 6
+int state_transfer[7][7] = 
+{
+    0,0,0,0,0,0,0,
+    0,1,1,0,1,1,0,
+    0,0,1,1,0,0,1,
+    0,0,0,1,0,0,1,
+    0,0,1,0,1,1,0,
+    0,0,0,0,0,1,0,
+    0,0,0,0,0,0,1
+};
 
 void AccpetThread(Broke*);
 void ConnectThread(Broke*, int, sockaddr_in);
@@ -89,11 +106,26 @@ private:
     vector<string> subTopicList; // 节点订阅的话题
     vector<string> pubTopicList; // 节点发布的话题
 public:
+    bool SetIndex(int32_t index) {
+        if (nodeIndex == 0x00000000) {
+            nodeIndex = index;
+            return true;
+        }
+        return false;
+    }
+    bool SetState(int transferstate) {
+        if (state_transfer[State][transferstate] == 1) {
+            State = transferstate;
+            return true;
+        }
+        return false;
+    }
     Node::Node(string ip, int port, int fd)
     {
         nodeIp = ip;
         nodePort = port;
         connectfd = fd;
+        State = newconnect;
         printf("Create a node = %s:%d\n", ip, port);
     }
     Node::~Node()
@@ -116,13 +148,14 @@ class Broke
 {
 private:
     int32_t totalNode;
+    mutex IndexLock;
     Server* server;
     Topic* topic;
     map<int32_t, Node*> index2nodeptr;
 public:
     void StartServer(string, int);
     int WaitAccpet(struct sockaddr_in&);
-
+    int32_t GetIndex();
     Broke::Broke()
     {
         totalNode = 0;
@@ -150,7 +183,13 @@ int Broke::WaitAccpet(struct sockaddr_in& cliaddr) {
     int connectfd = server->Accept(cliaddr);
     return connectfd;
 }
-
+int32_t Broke::GetIndex() {
+    lock_guard<mutex> guard(IndexLock, adopt_lock);
+    int32_t t = 0x00000001;
+    while ((t != 0) && ((totalNode & t) != 0x00000000)) t = t << 1;
+    totalNode = totalNode & t;
+    return t;
+}
 
 void AccpetThread(Broke* b) {
     int clifd;
@@ -169,4 +208,22 @@ void AccpetThread(Broke* b) {
             t.detach();
         }
     }
+}
+
+void ConnectThread(Broke* b, int connectfd, struct sockaddr_in cliaddr) {
+    Node* mynode = new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd);
+    int32_t index_temp = b->GetIndex();
+    if (index_temp <= 0) {
+        // 序号分配出错
+    }
+    else {
+        // 序号分配正确
+        if (mynode->SetIndex(index_temp)) {
+            // 序号设置正确
+        }
+        else {
+            // 序号设置错误
+        }
+    }
+
 }
