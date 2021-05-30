@@ -43,6 +43,7 @@ int state_transfer[6][6] =
     0,0,1,0,1,1,
     0,0,0,0,0,1
 };
+vector<string> DP({"", "newconnect", "connecting", "connected", "connect_wait", "close"});
 /* 声明一些类 */
 class Server;
 class Node;
@@ -52,7 +53,7 @@ class Broke;
 // 等待连接线程
 void AccpetThread(Broke*);
 // 处理/管理 新连接
-void ConnectThread(Broke*, int, char *, int);
+void ConnectThread(Broke*, int, sockaddr_in);
 // 新节点的 读/写 线程
 void ReadThread(Broke*, Node*);
 void WriteThread(Broke*, Node*);
@@ -129,7 +130,6 @@ public:
     void WaitForClose();
     Node(string ip, int port, int fd)
     {
-        printf("3\n");
         nodeIp = ip;
         nodePort = port;
         connectfd = fd;
@@ -154,23 +154,20 @@ void Node::SetState(int transferstate) {
     unique_lock<mutex> lk(StateLock);
     if (state_transfer[State][transferstate] == 1) {
         State = transferstate;
-        printf("Set Node State to %d", transferstate);
-        if (State == _close) {
-            CloseCv.notify_one();
-        }
+        printf("Set Node State to %s\n", DP[transferstate].c_str());
+        if (State == _close) CloseCv.notify_one();
         return;
     }
     return;
 }
-void Node::WaitForClose() {
-    unique_lock<mutex> lk(StateLock);
-    while (State != _close) {
-        CloseCv.wait(lk);
-    }
-}
 int Node::GetState() {
     unique_lock<mutex> lk(StateLock);
     return State;
+}
+void Node::WaitForClose() {
+    mutex Lock;
+    unique_lock<mutex> lk(Lock);
+    CloseCv.wait(lk, [this](){ return this->GetState() == _close; });
 }
 
 class Topic
@@ -244,19 +241,14 @@ void AccpetThread(Broke* b) {
         {
             printf("accept a new client: %s:%d\n", inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port);
             // 新的客户端连接
-            char* ip = inet_ntoa(cliaddr.sin_addr);
-            int port = cliaddr.sin_port;
-            thread t(ConnectThread, b, clifd, ip, port);
+            thread t(ConnectThread, b, clifd, cliaddr);
             t.detach();
         }
-        break;
     }
 }
 
-void ConnectThread(Broke* b, int connectfd, char* ip, int port) {
-    printf("1\n");
-    Node* mynode = new Node(ip, port, connectfd);
-    printf("2\n");
+void ConnectThread(Broke* b, int connectfd, struct sockaddr_in cliaddr) {
+    Node* mynode = new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd);
     int32_t index_temp = b->AllocIndex();
     if (index_temp <= 0) {
         // 序号分配出错
@@ -286,8 +278,7 @@ void ConnectThread(Broke* b, int connectfd, char* ip, int port) {
         break;
     }
     case _connect_wait:
-        // 设置超时时间
-        // 期间一直尝试 获取序号/分配序号
+        // 设置超时时间，期间一直尝试 获取序号/分配序号
         // int func(Broke*, Node*)
         // 这个函数返回 0/1，0 表示超时了
         break;
@@ -301,7 +292,8 @@ void ConnectThread(Broke* b, int connectfd, char* ip, int port) {
 }
 
 void ReadThread(Broke* b, Node* node) {
-
+    sleep(3);
+    node->SetState(_close);
 }
 
 void WriteThread(Broke* b, Node* node) {
