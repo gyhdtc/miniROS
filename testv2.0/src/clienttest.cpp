@@ -52,7 +52,7 @@ class Broke;
 // 等待连接线程
 void AccpetThread(Broke*);
 // 处理/管理 新连接
-void ConnectThread(Broke*, int, char *, int);
+void ConnectThread(Broke*, int, sockaddr_in);
 // 新节点的 读/写 线程
 void ReadThread(Broke*, Node*);
 void WriteThread(Broke*, Node*);
@@ -129,7 +129,6 @@ public:
     void WaitForClose();
     Node(string ip, int port, int fd)
     {
-        printf("3\n");
         nodeIp = ip;
         nodePort = port;
         connectfd = fd;
@@ -154,7 +153,6 @@ void Node::SetState(int transferstate) {
     unique_lock<mutex> lk(StateLock);
     if (state_transfer[State][transferstate] == 1) {
         State = transferstate;
-        printf("Set Node State to %d", transferstate);
         if (State == _close) {
             CloseCv.notify_one();
         }
@@ -242,21 +240,17 @@ void AccpetThread(Broke* b) {
             perror("accpet error:");
         else
         {
-            printf("accept a new client: %s:%d\n", inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port);
+            printf("accept a new client: %s:%d\n",inet_ntoa(cliaddr.sin_addr),cliaddr.sin_port);
             // 新的客户端连接
-            char* ip = inet_ntoa(cliaddr.sin_addr);
-            int port = cliaddr.sin_port;
-            thread t(ConnectThread, b, clifd, ip, port);
+            thread t(ConnectThread, b, clifd, cliaddr);
             t.detach();
         }
         break;
     }
 }
 
-void ConnectThread(Broke* b, int connectfd, char* ip, int port) {
-    printf("1\n");
-    Node* mynode = new Node(ip, port, connectfd);
-    printf("2\n");
+void ConnectThread(Broke* b, int connectfd, struct sockaddr_in cliaddr) {
+    Node* mynode = new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd);
     int32_t index_temp = b->AllocIndex();
     if (index_temp <= 0) {
         // 序号分配出错
@@ -299,7 +293,6 @@ void ConnectThread(Broke* b, int connectfd, char* ip, int port) {
     mynode->WaitForClose();
     delete mynode;
 }
-
 void ReadThread(Broke* b, Node* node) {
 
 }
@@ -307,8 +300,17 @@ void ReadThread(Broke* b, Node* node) {
 void WriteThread(Broke* b, Node* node) {
     
 }
-
 int main() {
-    Broke* mybroke = new Broke;
-    mybroke->StartServer(IPADDRESS, PORT);
+    int sockfd;
+    struct sockaddr_in  servaddr;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(PORT);
+    inet_pton(AF_INET, IPADDRESS, &servaddr.sin_addr);
+    connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
+    sleep(10);
+    //处理连接
+    close(sockfd);
+    return 0;
 }
