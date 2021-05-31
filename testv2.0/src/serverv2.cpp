@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/epoll.h>
+#include <atomic>
 using namespace std;
 // 定义常量
 #define IPADDRESS   "127.0.0.1"
@@ -51,13 +52,15 @@ class Topic;
 class Broke;
 /* 声明一些线程函数 */
 // 等待连接线程
-void AccpetThread(Broke*);
+void AccpetThread(Broke* const);
 // 处理/管理 新连接
-void ConnectThread(Broke*, int, sockaddr_in);
+void ConnectThread(Broke* const, int, sockaddr_in);
 // 新节点的 读/写 线程
-void ReadThread(Broke*, Node*);
-void WriteThread(Broke*, Node*);
+void ReadThread(Broke* const, Node* const);
+void WriteThread(Broke* const, Node* const);
 
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
 class Server
 {
 private:
@@ -109,23 +112,35 @@ int Server::Accept(struct sockaddr_in& cliaddr) {
     clifd = accept(listenfd, (struct sockaddr*)&cliaddr, &cliaddrlen);
     return clifd;
 }
-
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
 class Node
 {
 private:
     int State;
     mutex StateLock;
     condition_variable CloseCv;
+
+    int32_t nodeIndex;
+    bool IndexFlag;
+    bool TimeOutflag;
+    mutex IndexLock;
+    mutex IndexResetLock;
+    condition_variable IndexResetCv;
+
     string nodeIp;
     int nodePort;
-    string nodeName;
-    int32_t nodeIndex;
     int connectfd;
+
+    string nodeName;
+    
     vector<string> subTopicList; // 节点订阅的话题
     vector<string> pubTopicList; // 节点发布的话题
 public:
+    int32_t GetIndex();
+    bool ResetIndex();
+    int SetIndex(int32_t);
     int GetState();
-    bool SetIndex(int32_t);
     void SetState(int);
     void WaitForClose();
     Node(string ip, int port, int fd)
@@ -135,6 +150,8 @@ public:
         connectfd = fd;
         nodeIndex = 0x00000000;
         State = _newconnect;
+        IndexFlag = false;
+        TimeOutflag = false;
         printf("Create a node = %s:%d\n", nodeIp.c_str(), nodePort);
     }
     ~Node()
@@ -143,18 +160,39 @@ public:
         close(connectfd);
     }
 };
-bool Node::SetIndex(int32_t index) {
-    if (nodeIndex == 0x00000000) {
-        nodeIndex = index;
-        return true;
+int Node::SetIndex(int32_t index) {
+    unique_lock<mutex> lk(IndexLock);
+    if (TimeOutflag == true) {
+        return -1;
     }
-    return false;
+    else {
+        if (IndexFlag == true) {
+            return 0;
+        }
+        else {
+            nodeIndex = index;
+            IndexFlag = true;
+            if (State == _connect_wait)
+                IndexResetCv.notify_one();
+            return 1;
+        }
+    }
+}
+bool Node::ResetIndex() {
+    unique_lock<mutex> lk(IndexLock);
+    IndexResetCv.wait_for(lk, chrono::seconds(5), [this](){ return IndexFlag == true; });
+    TimeOutflag = true;
+    return IndexFlag;
+}
+int32_t Node::GetIndex() {
+    unique_lock<mutex> lk(IndexLock);
+    return nodeIndex;
 }
 void Node::SetState(int transferstate) {
-    unique_lock<mutex> lk(StateLock);
+    lock_guard<mutex> lk(StateLock);
     if (state_transfer[State][transferstate] == 1) {
         State = transferstate;
-        printf("Set Node State to %s\n", DP[transferstate].c_str());
+        printf("Set Node-%d State to %s\n", nodeIndex, DP[transferstate].c_str());
         if (State == _close) CloseCv.notify_one();
         return;
     }
@@ -166,10 +204,11 @@ int Node::GetState() {
 }
 void Node::WaitForClose() {
     mutex Lock;
-    unique_lock<mutex> lk(Lock);
+    unique_lock<mutex> lk(StateLock);
     CloseCv.wait(lk, [this](){ return this->GetState() == _close; });
 }
-
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
 class Topic
 {
 private:
@@ -179,7 +218,8 @@ public:
     void pubTopic(string, int32_t);
     void delTopic(string, int32_t);
 };
-
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
 class Broke
 {
 private:
@@ -226,8 +266,9 @@ int32_t Broke::AllocIndex() {
     totalNode = totalNode | t;
     return t;
 }
-
-void AccpetThread(Broke* b) {
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
+void AccpetThread(Broke* const b) {
     int clifd;
     struct sockaddr_in cliaddr;
     socklen_t len;
@@ -246,8 +287,7 @@ void AccpetThread(Broke* b) {
         }
     }
 }
-
-void ConnectThread(Broke* b, int connectfd, struct sockaddr_in cliaddr) {
+void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     Node* mynode = new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd);
     int32_t index_temp = b->AllocIndex();
     if (index_temp <= 0) {
@@ -267,39 +307,55 @@ void ConnectThread(Broke* b, int connectfd, struct sockaddr_in cliaddr) {
     }
     switch (mynode->GetState())
     {
-    case _connecting:
-    {
-        // 开启 读写 线程
-        thread t1(ReadThread, b, mynode);
-        thread t2(WriteThread, b, mynode);
-        mynode->SetState(_connected);
-        t1.detach();
-        t2.detach();
-        break;
-    }
-    case _connect_wait:
-        // 设置超时时间，期间一直尝试 获取序号/分配序号
-        // int func(Broke*, Node*)
-        // 这个函数返回 0/1，0 表示超时了
-        break;
-    default:
-        printf("something error happened in [ConnectThread, switch]\n");
-        delete mynode;
-        break;
+        case _connect_wait:
+        {
+            // 设置超时时间，期间一直尝试 获取序号/分配序号
+            thread t([b, mynode](){
+                int32_t index_temp = 0x00000000;
+                while (index_temp <= 0 || mynode->SetIndex(index_temp) == 0 )
+                    index_temp = b->AllocIndex();
+            });
+            t.detach();
+            if (mynode->ResetIndex()) {
+                mynode->SetState(_connecting);
+            }
+            else {
+                mynode->SetState(_close);
+                break;
+            }
+        }
+        case _connecting:
+        {
+            // 开启 读写 线程
+            thread t1(ReadThread, b, mynode);
+            thread t2(WriteThread, b, mynode);
+            mynode->SetState(_connected);
+            // 添加 mynode 进入 broke 的管理
+
+            t1.detach();
+            t2.detach();
+            break;
+        }
+        default:
+            printf("something error happened in [ConnectThread, switch]\n");
+            delete mynode;
+            break;
     }
     mynode->WaitForClose();
+    // broke 删除 mynode
     delete mynode;
 }
-
-void ReadThread(Broke* b, Node* node) {
+void ReadThread(Broke* const b, Node* const node) {
     sleep(3);
+    cout << "0\n";
     node->SetState(_close);
+    cout << "1\n";
 }
-
-void WriteThread(Broke* b, Node* node) {
+void WriteThread(Broke* const b, Node* const node) {
     
 }
-
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
 int main() {
     Broke* mybroke = new Broke;
     mybroke->StartServer(IPADDRESS, PORT);
