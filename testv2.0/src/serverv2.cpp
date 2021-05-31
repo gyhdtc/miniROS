@@ -189,7 +189,7 @@ int32_t Node::GetIndex() {
     return nodeIndex;
 }
 void Node::SetState(int transferstate) {
-    lock_guard<mutex> lk(StateLock);
+    unique_lock<mutex> lk(StateLock);
     if (state_transfer[State][transferstate] == 1) {
         State = transferstate;
         printf("Set Node-%d State to %s\n", nodeIndex, DP[transferstate].c_str());
