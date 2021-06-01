@@ -228,12 +228,13 @@ private:
     Server* server;
     Topic* topic;
     map<int32_t, Node*> index2nodeptr;
+    mutex Index2NodeptrLock;
 public:
     void StartServer(string, int);
     int WaitAccpet(struct sockaddr_in&);
     int32_t AllocIndex();
     bool AddNode(Node* const);
-    bool DelNode(Node*);
+    bool DelNode(Node* const);
     Broke()
     {
         totalNode = 0;
@@ -269,10 +270,21 @@ int32_t Broke::AllocIndex() {
     return t;
 }
 bool Broke::AddNode(Node* const node) {
-
+    int32_t node_index = node->GetIndex();
+    unique_lock<mutex> lk(Index2NodeptrLock);
+    if (index2nodeptr.find(node_index) == index2nodeptr.end()) {
+        index2nodeptr.insert({node_index, node});
+        return true;
+    }
+    else {
+        printf("Index %d exsit\n", node_index);
+        return false;
+    }
 }
 bool Broke::DelNode(Node* const node) {
-
+    // 先删索引，再恢复 totalnode
+    // index 不一定存在，先判断
+    // 还要删除Topic下，对应的？【有没有简单点的方法？】
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -333,7 +345,7 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
             thread t2(WriteThread, b, mynode);
             mynode->SetState(_connected);
             // 添加 mynode 进入 broke 的管理
-
+            b->AddNode(mynode);
             t1.detach();
             t2.detach();
             break;
@@ -345,6 +357,7 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     }
     mynode->WaitForClose();
     // broke 删除 mynode
+    b->DelNode(mynode);
     delete mynode;
 }
 void ReadThread(Broke* const b, Node* const node) {
