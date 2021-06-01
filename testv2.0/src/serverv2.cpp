@@ -161,7 +161,6 @@ public:
 };
 int Node::SetIndex(int32_t index) {
     unique_lock<mutex> lk(IndexLock);
-    cout << "shit-0\n";
     if (TimeOutflag == true) {
         return -1;
     }
@@ -180,7 +179,6 @@ int Node::SetIndex(int32_t index) {
 }
 bool Node::ResetIndex() {
     unique_lock<mutex> lk(IndexLock);
-    cout << "shit-1\n";
     IndexResetCv.wait_for(lk, chrono::seconds(5), [this](){ return IndexFlag == true; });
     if (IndexFlag == true)
         TimeOutflag = true;
@@ -188,12 +186,10 @@ bool Node::ResetIndex() {
 }
 int32_t Node::GetIndex() {
     unique_lock<mutex> lk(IndexLock);
-    cout << "shit-2\n";
     return nodeIndex;
 }
 void Node::SetState(int transferstate) {
     unique_lock<mutex> lk(StateLock);
-    cout << "bbb-0\n";
     if (state_transfer[State][transferstate] == 1) {
         State = transferstate;
         printf("Set Node-%d State to %s\n", nodeIndex, DP[transferstate].c_str());
@@ -204,12 +200,10 @@ void Node::SetState(int transferstate) {
 }
 int Node::GetState() {
     unique_lock<mutex> lk(StateLock);
-    cout << "bbb-1\n";
     return State;
 }
 void Node::WaitForClose() {
     unique_lock<mutex> lk(StateLock);
-    cout << "bbb-2\n";
     CloseCv.wait_for(lk, chrono::seconds(1), [this](){ return this->GetState() == _close; });
 }
 /* ---------------------------------------------------------------------- */
