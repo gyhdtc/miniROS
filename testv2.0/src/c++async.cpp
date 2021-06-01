@@ -9,14 +9,14 @@ using namespace std;
 
 int temp = 0;
 bool timeflag = false;
-
+bool shit = false;
 bool setflag = false;
 mutex setflagmutex;
 condition_variable cv;
 
 void fun() {
 	while (timeflag != true) {
-        sleep(4);
+        // sleep(5);
         unique_lock<mutex> lk1(setflagmutex);
         
         if (timeflag == false) {
@@ -27,15 +27,15 @@ void fun() {
     }
     if (setflag == true) {
         cv.notify_one();
+        shit = true;
     }
     cout << "1\n";
 }
 void tiktok() {
     sleep(3);
     cout << "2\n";
-    mutex shit;
     unique_lock<mutex> lk(setflagmutex);
-    cv.wait_for(lk, chrono::seconds(3), [](){ return setflag == true; });
+    cv.wait(lk);//, [](){ return shit == true; });
     cout << "3\n";
     if (setflag == false) {
         timeflag = true;

@@ -137,7 +137,7 @@ private:
     vector<string> pubTopicList; // 节点发布的话题
 public:
     int32_t GetIndex();
-    bool ResetIndex();
+    bool ResetIndex(int);
     int SetIndex(int32_t);
     int GetState();
     void SetState(int);
@@ -177,10 +177,11 @@ int Node::SetIndex(int32_t index) {
         }
     }
 }
-bool Node::ResetIndex() {
+bool Node::ResetIndex(int timeout = 3) {
     unique_lock<mutex> lk(IndexLock);
-    IndexResetCv.wait_for(lk, chrono::seconds(5), [this](){ return IndexFlag == true; });
-    if (IndexFlag == true)
+    printf("Re-Set Index = %s:%d\n", nodeIp.c_str(), nodePort);
+    IndexResetCv.wait_for(lk, chrono::seconds(timeout), [this](){ return IndexFlag == true; });
+    if (IndexFlag == false)
         TimeOutflag = true;
     return IndexFlag;
 }
@@ -204,7 +205,7 @@ int Node::GetState() {
 }
 void Node::WaitForClose() {
     unique_lock<mutex> lk(StateLock);
-    CloseCv.wait_for(lk, chrono::seconds(1), [this](){ return this->GetState() == _close; });
+    CloseCv.wait(lk, [this](){ return State == _close; });
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -231,6 +232,8 @@ public:
     void StartServer(string, int);
     int WaitAccpet(struct sockaddr_in&);
     int32_t AllocIndex();
+    bool AddNode(Node* const);
+    bool DelNode(Node*);
     Broke()
     {
         totalNode = 0;
@@ -265,6 +268,12 @@ int32_t Broke::AllocIndex() {
     totalNode = totalNode | t;
     return t;
 }
+bool Broke::AddNode(Node* const node) {
+
+}
+bool Broke::DelNode(Node* const node) {
+
+}
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 void AccpetThread(Broke* const b) {
@@ -289,12 +298,13 @@ void AccpetThread(Broke* const b) {
 void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     Node* mynode = new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd);
     int32_t index_temp = b->AllocIndex();
-    if (index_temp <= 0 || !mynode->SetIndex(index_temp)) {
+    index_temp = 0;
+    if (index_temp <= 0 || mynode->SetIndex(index_temp) <= 0) {
         // 序号分配/设置出错
         mynode->SetState(_connect_wait);
     }
     else {
-        mynode->SetState(_connecting);
+        mynode->SetState(_connect_wait);
     }
     switch (mynode->GetState())
     {
@@ -303,6 +313,7 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
             // 设置超时时间，期间一直尝试 获取序号/分配序号
             thread t([b, mynode](){
                 int32_t index_temp = 0x00000000;
+                sleep(4);
                 while (index_temp <= 0 || mynode->SetIndex(index_temp) == 0 )
                     index_temp = b->AllocIndex();
             });
@@ -338,9 +349,7 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
 }
 void ReadThread(Broke* const b, Node* const node) {
     sleep(3);
-    cout << "0\n";
     node->SetState(_close);
-    cout << "1\n";
 }
 void WriteThread(Broke* const b, Node* const node) {
     
