@@ -125,7 +125,6 @@ private:
     bool IndexFlag;
     bool TimeOutflag;
     mutex IndexLock;
-    mutex IndexResetLock;
     condition_variable IndexResetCv;
 
     string nodeIp;
@@ -162,6 +161,7 @@ public:
 };
 int Node::SetIndex(int32_t index) {
     unique_lock<mutex> lk(IndexLock);
+    cout << "shit-0\n";
     if (TimeOutflag == true) {
         return -1;
     }
@@ -180,16 +180,20 @@ int Node::SetIndex(int32_t index) {
 }
 bool Node::ResetIndex() {
     unique_lock<mutex> lk(IndexLock);
+    cout << "shit-1\n";
     IndexResetCv.wait_for(lk, chrono::seconds(5), [this](){ return IndexFlag == true; });
-    TimeOutflag = true;
+    if (IndexFlag == true)
+        TimeOutflag = true;
     return IndexFlag;
 }
 int32_t Node::GetIndex() {
     unique_lock<mutex> lk(IndexLock);
+    cout << "shit-2\n";
     return nodeIndex;
 }
 void Node::SetState(int transferstate) {
     unique_lock<mutex> lk(StateLock);
+    cout << "bbb-0\n";
     if (state_transfer[State][transferstate] == 1) {
         State = transferstate;
         printf("Set Node-%d State to %s\n", nodeIndex, DP[transferstate].c_str());
@@ -200,12 +204,13 @@ void Node::SetState(int transferstate) {
 }
 int Node::GetState() {
     unique_lock<mutex> lk(StateLock);
+    cout << "bbb-1\n";
     return State;
 }
 void Node::WaitForClose() {
-    mutex Lock;
     unique_lock<mutex> lk(StateLock);
-    CloseCv.wait(lk, [this](){ return this->GetState() == _close; });
+    cout << "bbb-2\n";
+    CloseCv.wait_for(lk, chrono::seconds(1), [this](){ return this->GetState() == _close; });
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -290,20 +295,12 @@ void AccpetThread(Broke* const b) {
 void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     Node* mynode = new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd);
     int32_t index_temp = b->AllocIndex();
-    if (index_temp <= 0) {
-        // 序号分配出错
+    if (index_temp <= 0 || !mynode->SetIndex(index_temp)) {
+        // 序号分配/设置出错
         mynode->SetState(_connect_wait);
     }
     else {
-        // 序号分配正确
-        if (mynode->SetIndex(index_temp)) {
-            // 序号设置正确
-            mynode->SetState(_connecting);
-        }
-        else {
-            // 序号设置错误
-            mynode->SetState(_connect_wait);
-        }
+        mynode->SetState(_connecting);
     }
     switch (mynode->GetState())
     {
