@@ -310,26 +310,25 @@ void AccpetThread(Broke* const b) {
 void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     Node* mynode = new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd);
     int32_t index_temp = b->AllocIndex();
-    index_temp = 0;
     if (index_temp <= 0 || mynode->SetIndex(index_temp) <= 0) {
         // 序号分配/设置出错
         mynode->SetState(_connect_wait);
     }
     else {
-        mynode->SetState(_connect_wait);
+        mynode->SetState(_connecting);
     }
     switch (mynode->GetState())
     {
         case _connect_wait:
         {
-            // 设置超时时间，期间一直尝试 获取序号/分配序号
+            // 此线程一直尝试 获取序号/分配序号
             thread t([b, mynode](){
                 int32_t index_temp = 0x00000000;
-                sleep(4);
                 while (index_temp <= 0 || mynode->SetIndex(index_temp) == 0 )
                     index_temp = b->AllocIndex();
             });
             t.detach();
+            // 调用重设置函数，一直阻塞在这里，默认等待时间 3 秒
             if (mynode->ResetIndex()) {
                 mynode->SetState(_connecting);
             }
