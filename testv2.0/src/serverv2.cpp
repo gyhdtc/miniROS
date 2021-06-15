@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/epoll.h>
 #include <atomic>
+#include <set>
 using namespace std;
 // 定义常量
 #define IPADDRESS   "127.0.0.1"
@@ -212,12 +213,63 @@ void Node::WaitForClose() {
 class Topic
 {
 private:
+    map<int32_t, set<string>> sub2name; // 发布节点序号 --- 发布话题名称s
+    map<int32_t, set<string>> pub2name; // 发布节点序号 --- 订阅话题名称s
     map<string, pair<int32_t, int32_t>> name2subANDpub; // 名字 --- （订阅节点，发布节点）
 public:
     void subTopic(string, int32_t);
     void pubTopic(string, int32_t);
-    void delTopic(string, int32_t);
+    void delTopic(string, int32_t); 
 };
+void Topic::subTopic(string name, int32_t index) {
+    if (name2subANDpub.find(name) == name2subANDpub.end() || (name2subANDpub.find(name) != name2subANDpub.end() && name2subANDpub[name].first == 0)) {
+        // 没有这个话题，或者有这个话题但是没有话题发布者
+        if (name2subANDpub.find(name) == name2subANDpub.end()) {
+            // 没有这个话题
+            name2subANDpub[name] = {index, 0};
+        }
+        else {
+            // 有这个话题
+            name2subANDpub[name].first = index;
+        }
+        if (sub2name.find(index) == sub2name.end()) {
+            sub2name.insert(pair<int32_t, set<string>>{index, set<string>{name}});
+        }
+        else {
+            sub2name[index].insert(name);
+        }
+    }
+    else {
+        // 有这个话题，并且有话题发布者
+        printf("%s already subed by %d\n", name.c_str(), index);
+    }
+}
+void Topic::pubTopic(string name, int32_t index) {
+    if (name2subANDpub.find(name) == name2subANDpub.end() || (name2subANDpub.find(name) != name2subANDpub.end() && name2subANDpub[name].first == 0)) {
+        // 没有这个话题，或者有这个话题但是没有话题发布者
+        if (name2subANDpub.find(name) == name2subANDpub.end()) {
+            // 没有这个话题
+            name2subANDpub[name] = {0, index};
+        }
+        else {
+            // 有这个话题
+            name2subANDpub[name].second = name2subANDpub[name].second | index;
+        }
+        if (pub2name.find(index) == pub2name.end()) {
+            pub2name.insert(pair<int32_t, set<string>>{index, set<string>{name}});
+        }
+        else {
+            pub2name[index].insert(name);
+        }
+    }
+    else {
+        // 有这个话题，并且有话题发布者
+        printf("%s already subed by %d\n", name.c_str(), index);
+    }
+}
+void Topic::delTopic(string name, int32_t index) {
+    
+}
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 class Broke
@@ -285,6 +337,14 @@ bool Broke::DelNode(Node* const node) {
     // 先删索引，再恢复 totalnode
     // index 不一定存在，先判断
     // 还要删除Topic下，对应的？【有没有简单点的方法？】
+    unique_lock<mutex> guard1(IndexLock);
+    unique_lock<mutex> guard2(Index2NodeptrLock);
+    int32_t node_index = node->GetIndex();
+    index2nodeptr.erase(node_index);
+    totalNode = totalNode & (0xffffffff ^ node_index);
+    guard1.unlock();
+    guard2.unlock();
+
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
