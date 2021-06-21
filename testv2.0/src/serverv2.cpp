@@ -245,8 +245,8 @@ void Topic::subTopic(string name, int32_t index) {
     }
 }
 void Topic::pubTopic(string name, int32_t index) {
-    if (name2subANDpub.find(name) == name2subANDpub.end() || (name2subANDpub.find(name) != name2subANDpub.end() && name2subANDpub[name].first == 0)) {
-        // 没有这个话题，或者有这个话题但是没有话题发布者
+    if (name2subANDpub.find(name) == name2subANDpub.end() || (name2subANDpub.find(name) != name2subANDpub.end() && (name2subANDpub[name].second & index) == 0)) {
+        // 没有这个话题，或者有这个话题但是此节点没有订阅此话题
         if (name2subANDpub.find(name) == name2subANDpub.end()) {
             // 没有这个话题
             name2subANDpub[name] = {0, index};
@@ -268,7 +268,25 @@ void Topic::pubTopic(string name, int32_t index) {
     }
 }
 void Topic::delTopic(string name, int32_t index) {
-    
+    if (name == "all") {
+        vector<string> tname;
+        if (sub2name.find(index) != sub2name.end()) {
+            for (auto i : sub2name[index]) {
+                tname.push_back(i);
+            }
+            sub2name.erase(index);
+        }
+        if (pub2name.find(index) != pub2name.end()) {
+            for (auto i : pub2name[index]) {
+                tname.push_back(i);
+            }
+            pub2name.erase(index);
+        }
+        
+    }
+    else {
+
+    }
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
