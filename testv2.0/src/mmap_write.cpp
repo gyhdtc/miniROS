@@ -7,18 +7,18 @@
 
 int main(){
     int fd;
-    void *start;
+    char *start;
     struct stat sb;
-    fd = open("./mmap.txt", O_RDONLY); /*打开/etc/passwd */
+    fd = open("./mmap_write.txt", O_RDONLY); /*打开/etc/passwd */
     fstat(fd, &sb); /* 取得文件大小 */
     printf("mmap.txt file size = %d \n", (int)sb.st_size);
     // char * c = new char[1024];
     int mmapsize = (sb.st_size/4096+1)*4096;
-    start = mmap(NULL, mmapsize, PROT_READ, MAP_PRIVATE, fd, 0);
+    start = (char *)mmap(NULL, mmapsize, PROT_READ, MAP_PRIVATE, fd, 0);
     if(start == MAP_FAILED) /* 判断是否映射成功 */
         return 0;
-    printf("%d\n", strlen((char*)start));
-    printf("%s\n", start);
+    printf("%d\n", (int)strlen((char*)start));
+    // printf("%s\n", start);
     /* 构建一个 client */
     int sockfd;
     struct sockaddr_in  servaddr;
