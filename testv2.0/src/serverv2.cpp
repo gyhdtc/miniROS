@@ -362,7 +362,8 @@ bool Broke::DelNode(Node* const node) {
     totalNode = totalNode & (0xffffffff ^ node_index);
     guard1.unlock();
     guard2.unlock();
-
+    // 删除节点下对应的topic
+    
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
