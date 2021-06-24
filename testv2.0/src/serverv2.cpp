@@ -268,6 +268,7 @@ void Topic::pubTopic(string name, int32_t index) {
     }
 }
 void Topic::delTopic(string name, int32_t index) {
+    // 删除全部
     if (name == "all") {
         vector<string> tname;
         if (sub2name.find(index) != sub2name.end()) {
@@ -282,10 +283,24 @@ void Topic::delTopic(string name, int32_t index) {
             }
             pub2name.erase(index);
         }
-        
+        for (auto topicname : tname) {
+            name2subANDpub[topicname].first &= (0xffffffff ^ index);
+            name2subANDpub[topicname].second &= (0xffffffff ^ index);
+            if (name2subANDpub[topicname].first == 0 && name2subANDpub[topicname].second == 0) {
+                name2subANDpub.erase(topicname);
+            }
+        }
     }
+    // 删除某一个
     else {
-
+        if (sub2name[index].find(name) != sub2name[index].end()) {
+            sub2name[index].erase(name);
+        }
+        if (pub2name[index].find(name) != pub2name[index].end()) {
+            pub2name[index].erase(name);
+        }
+        name2subANDpub[name].first &= (0xffffffff ^ index);
+        name2subANDpub[name].second &= (0xffffffff ^ index);
     }
 }
 /* ---------------------------------------------------------------------- */
@@ -358,12 +373,14 @@ bool Broke::DelNode(Node* const node) {
     unique_lock<mutex> guard1(IndexLock);
     unique_lock<mutex> guard2(Index2NodeptrLock);
     int32_t node_index = node->GetIndex();
-    index2nodeptr.erase(node_index);
+    // 删除节点下对应的topic
+    topic->delTopic("all", node_index);
+    // 恢复节点序号
     totalNode = totalNode & (0xffffffff ^ node_index);
+    // 删除 节点序号---节点类 映射
+    index2nodeptr.erase(node_index);
     guard1.unlock();
     guard2.unlock();
-    // 删除节点下对应的topic
-    
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
