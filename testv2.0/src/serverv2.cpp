@@ -24,6 +24,7 @@
 #include <atomic>
 #include <set>
 using namespace std;
+#define int32_t uint32_t
 // 定义常量
 #define IPADDRESS   "127.0.0.1"
 #define PORT        8787
@@ -435,20 +436,30 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
         }
         case _connecting:
         {
-            // 开启 读写 线程
-            thread t1(ReadThread, b, mynode);
-            thread t2(WriteThread, b, mynode);
-            mynode->SetState(_connected);
             // 添加 mynode 进入 broke 的管理
-            b->AddNode(mynode);
-            t1.detach();
-            t2.detach();
+            // 加入 broke 成功
+            if (b->AddNode(mynode)) {
+                // 设置状态
+                mynode->SetState(_connected);
+                // 开启 读写 线程
+                thread t1(ReadThread, b, mynode);
+                thread t2(WriteThread, b, mynode);
+                t1.detach();
+                t2.detach();
+            }
+            else {
+            // 加入 broke 失败
+                // 设置状态
+                mynode->SetState(_close);
+            }
             break;
         }
         default:
+        {
             printf("something error happened in [ConnectThread, switch]\n");
             delete mynode;
             break;
+        }
     }
     mynode->WaitForClose();
     // broke 删除 mynode
@@ -456,8 +467,7 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     delete mynode;
 }
 void ReadThread(Broke* const b, Node* const node) {
-    sleep(3);
-    node->SetState(_close);
+    
 }
 void WriteThread(Broke* const b, Node* const node) {
     
