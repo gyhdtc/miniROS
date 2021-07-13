@@ -30,6 +30,7 @@ using namespace std;
 #define PORT        8787
 #define MAXSIZE     1024
 #define LISTENQ     100
+#define headlength  8
 // 定义 node 状态
 #define _newconnect 1
 #define _connecting 2
@@ -56,3 +57,30 @@ class Node;
 class Topic;
 class Broke;
 
+struct head {
+    uint8_t type;
+    uint8_t node_index;
+    uint8_t topic_name_len;
+    uint8_t data_len;
+    uint8_t check_code;
+    uint8_t return_node_index;
+    uint16_t resever_int; // 保留字节
+};
+// 头部解析
+void GetHead(head& h, const void* start) {
+    
+}
+// 生成校验码：统计 1 的个数，和256取余
+uint8_t codeGenera(vector<uint8_t> msg) {
+    uint8_t res = 0;
+    for (int i = 0; i < msg.size(); ++i) {
+        uint8_t t = 0x01;
+        for (int j = 0; j < 8; ++j) {
+            if ((msg[i] & t) != 0x00) {
+                res = res % 256 + 1;
+            }
+            t = t << 1;
+        }
+    }
+    return res;
+}

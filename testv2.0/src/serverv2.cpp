@@ -168,7 +168,10 @@ private:
 public:
     void subTopic(string, int32_t);
     void pubTopic(string, int32_t);
-    void delTopic(string, int32_t); 
+    void delTopic(string, int32_t);
+    void printName(string);
+    void printIndex(uint32_t);
+    void printAll();
 };
 void Topic::subTopic(string name, int32_t index) {
     if (name2subANDpub.find(name) == name2subANDpub.end() || (name2subANDpub.find(name) != name2subANDpub.end() && name2subANDpub[name].first == 0)) {
@@ -253,6 +256,94 @@ void Topic::delTopic(string name, int32_t index) {
             name2subANDpub[name].second &= (0xffffffff ^ index);
         }
     }
+}
+void Topic::printAll() {
+    for (auto i : name2subANDpub) {
+        printName(i.first);
+    }
+}
+void Topic::printName(string name) {
+	cout << "----------------话题信息-------------------\n";
+	if (name2subANDpub.find(name) == name2subANDpub.end()) {
+		cout << "没有" << name << "话题的相关信息\n";
+	}
+	else {
+		// 输出为二进制
+		auto idTobit = [](uint32_t index)->string {
+			string res = "0000 0000 0000 0000 0000 0000 0000 0000";
+			int i = 0;
+			while (index) {
+				if (index & 1) {
+					res[38 - (i + i / 4)] = '1';
+				}
+				i++;
+				index = index >> 1;
+			}
+			return res;
+		};
+		// 返回1的个数
+		auto numOf1 = [](uint32_t num)->int {
+			int res = 0;
+			while (num) {
+				res++;
+				num = num & (num - 1);
+			}
+			return res;
+		};
+		cout << name << "话题的发布者：\n";
+		if (numOf1(name2subANDpub[name].first) != 1) {
+			cout << "此话题没有发布者！\n";
+		}
+		else {
+			cout << idTobit(name2subANDpub[name].first) << "\n";
+		}
+		cout << name << "话题的订阅者：\n";
+		if (name2subANDpub[name].first == 0) {
+			cout << "此话题还没有订阅者！\n";
+		}
+		else {
+			cout << idTobit(name2subANDpub[name].second) << "\n";
+		}
+	}
+	cout << "-----------------------------------------\n";
+}
+void Topic::printIndex(uint32_t index) {
+	// 输出为二进制
+	auto idTobit = [](uint32_t index)->string {
+		string res = "0000 0000 0000 0000 0000 0000 0000 0000";
+		int i = 0;
+		while (index) {
+			if (index & 1) {
+				res[38 - (i + i / 4)] = '1';
+			}
+			i++;
+			index = index >> 1;
+		}
+		return res;
+	};
+	string myid = idTobit(index);
+	cout << "----------------节点信息-------------------\n";
+	if (sub2name.find(index) == sub2name.end()) {
+		cout << "节点" << myid << "没有发布话题！\n";
+	}
+	else {
+		cout << "节点" << myid << "发布的话题：\n";
+		for (auto name : sub2name[index]) {
+			cout << name << ", ";
+		}
+		cout << "\n";
+	}
+	if (pub2name.find(index) == pub2name.end()) {
+		cout << "节点" << myid << "没有订阅话题！\n";
+	}
+	else {
+		cout << "节点" << myid << "订阅的话题：\n";
+		for (auto name : pub2name[index]) {
+			cout << name << ", ";
+		}
+		cout << "\n";
+	}
+	cout << "-----------------------------------------\n";
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
