@@ -1,4 +1,4 @@
-#include "./include/headv2.0.h"
+#include "../include/headv2.0.h"
 
 /* 声明一些线程函数 */
 // 等待连接线程
