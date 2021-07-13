@@ -1,57 +1,5 @@
-#include <thread>
-#include <stdio.h>
-#include <unistd.h>
-#include <iostream>
-#include <vector>
-#include <map>
-#include <unordered_map>
-#include <errno.h>
-#include <queue>
-#include <mutex>
-#include <condition_variable>
-#include <memory.h>
-#include <signal.h>
-#include <bitset>
-#include <stdarg.h>
-#include <string>
-#include <cstring>
-#include <algorithm>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/epoll.h>
-#include <atomic>
-#include <set>
-using namespace std;
-#define int32_t uint32_t
-// 定义常量
-#define IPADDRESS   "127.0.0.1"
-#define PORT        8787
-#define MAXSIZE     1024
-#define LISTENQ     100
-// 定义 node 状态
-#define _newconnect 1
-#define _connecting 2
-#define _connected 3
-#define _connect_wait 4
-#define _close 5
-#define _close_1 6
-int state_transfer[6][6] = 
-{
-    0,0,0,0,0,0,
-    0,1,1,0,1,0,
-    0,0,1,1,0,0,
-    0,0,0,1,0,1,
-    0,0,1,0,1,1,
-    0,0,0,0,0,1
-};
-vector<string> DP({"", "newconnect", "connecting", "connected", "connect_wait", "close"});
-/* 声明一些类 */
-class Server;
-class Node;
-class Topic;
-class Broke;
+#include "./include/headv2.0.h"
+
 /* 声明一些线程函数 */
 // 等待连接线程
 void AccpetThread(Broke* const);
@@ -300,8 +248,10 @@ void Topic::delTopic(string name, int32_t index) {
         if (pub2name[index].find(name) != pub2name[index].end()) {
             pub2name[index].erase(name);
         }
-        name2subANDpub[name].first &= (0xffffffff ^ index);
-        name2subANDpub[name].second &= (0xffffffff ^ index);
+        if (name2subANDpub.find(name) != name2subANDpub.end()) {
+            name2subANDpub[name].first &= (0xffffffff ^ index);
+            name2subANDpub[name].second &= (0xffffffff ^ index);
+        }
     }
 }
 /* ---------------------------------------------------------------------- */
