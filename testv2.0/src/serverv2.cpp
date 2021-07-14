@@ -528,7 +528,7 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
     mynode->ProtectThread.unlock();
     int connectFd = mynode->GetConnFd();
     char *buffer = new char[MAX_BUFFER_SIZE];
-    /* 要改，最好只有一个 read 调用入口 */
+    /* 要改，最好只有一个 read 调用入口 !!! */
     while (1) {
         // ---------------------------------------------------------
         // 获取头部
