@@ -31,6 +31,7 @@ using namespace std;
 #define MAXSIZE     1024
 #define LISTENQ     100
 #define headlength  8
+#define MAX_BUFFER_SIZE  263
 // 定义 node 状态
 #define _newconnect 1
 #define _connecting 2
@@ -57,7 +58,7 @@ class Node;
 class Topic;
 class Broke;
 
-struct head {
+struct Head {
     uint8_t type;
     uint8_t node_index;
     uint8_t topic_name_len;
@@ -67,8 +68,23 @@ struct head {
     uint16_t resever_int; // 保留字节
 };
 // 头部解析
-void GetHead(head& h, const void* start) {
-    
+void GetHead(Head& h, const void* start) {
+    uint8_t* t = (uint8_t*)start;
+    h.type = uint8_t(*(t++));
+    h.node_index = uint8_t(*(t++));
+    h.topic_name_len = uint8_t(*(t++));
+    h.data_len = uint8_t(*(t++));
+    h.check_code = uint8_t(*(t++));
+    h.return_node_index = uint8_t(*(t++));
+    h.resever_int = uint16_t(*t);
+}
+// 8位比特位输出
+void out(uint8_t* a, size_t len) {
+    cout << "---------------------\n";
+    for (int i = 0; i < len; ++i) {
+        cout << bitset<8>(uint8_t(*(a+i))) << endl;
+    }
+    cout << "---------------------\n";
 }
 // 生成校验码：统计 1 的个数，和256取余
 uint8_t codeGenera(vector<uint8_t> msg) {

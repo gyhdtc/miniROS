@@ -6,8 +6,8 @@ void AccpetThread(Broke* const);
 // 处理/管理 新连接
 void ConnectThread(Broke* const, int, sockaddr_in);
 // 新节点的 读/写 线程
-void ReadThread(Broke* const, Node* const);
-void WriteThread(Broke* const, Node* const);
+void ReadThread(Broke* const, shared_ptr<Node> mynode);
+void WriteThread(Broke* const, shared_ptr<Node> mynode);
 
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -67,25 +67,32 @@ int Server::Accept(struct sockaddr_in& cliaddr) {
 class Node
 {
 private:
+    // 状态
     int State;
     mutex StateLock;
+    // 关闭状态的条件变量
     condition_variable CloseCv;
-
+    // 节点序号
     int32_t nodeIndex;
     bool IndexFlag;
     bool TimeOutflag;
     mutex IndexLock;
+    // 序号重获的条件变量
     condition_variable IndexResetCv;
-
+    // 连接后，不变
     string nodeIp;
     int nodePort;
     int connectfd;
-
+    // 数据传输后，不变
     string nodeName;
-    
-    vector<string> subTopicList; // 节点订阅的话题
-    vector<string> pubTopicList; // 节点发布的话题
+    // 节点 订阅/发布 的话题
+    vector<string> subTopicList;
+    vector<string> pubTopicList;
 public:
+    // 在创建多线程的时候，用来保护node数据不出错
+    // 有时候也用来保护 shared ptr 的引用记数正确
+    mutex ProtectThread;
+    int GetConnFd() const { return connectfd; }
     int32_t GetIndex();
     bool ResetIndex(int);
     int SetIndex(int32_t);
@@ -109,6 +116,9 @@ public:
         close(connectfd);
     }
 };
+// -1: 超时 
+// 0 : 已经设置
+// 1 : 设置成功
 int Node::SetIndex(int32_t index) {
     unique_lock<mutex> lk(IndexLock);
     if (TimeOutflag == true) {
@@ -130,6 +140,7 @@ int Node::SetIndex(int32_t index) {
 bool Node::ResetIndex(int timeout = 3) {
     unique_lock<mutex> lk(IndexLock);
     printf("Re-Set Index = %s:%d\n", nodeIp.c_str(), nodePort);
+    // 要么 超时，要么IndexFlag 设置好了之后被唤醒
     IndexResetCv.wait_for(lk, chrono::seconds(timeout), [this](){ return IndexFlag == true; });
     if (IndexFlag == false)
         TimeOutflag = true;
@@ -360,8 +371,8 @@ public:
     void StartServer(string, int);
     int WaitAccpet(struct sockaddr_in&);
     int32_t AllocIndex();
-    bool AddNode(Node* const);
-    bool DelNode(Node* const);
+    bool AddNode(shared_ptr<Node>);
+    bool DelNode(shared_ptr<Node>);
     Broke()
     {
         totalNode = 0;
@@ -396,11 +407,11 @@ int32_t Broke::AllocIndex() {
     totalNode = totalNode | t;
     return t;
 }
-bool Broke::AddNode(Node* const node) {
+bool Broke::AddNode(shared_ptr<Node> node) {
     int32_t node_index = node->GetIndex();
     unique_lock<mutex> lk(Index2NodeptrLock);
     if (index2nodeptr.find(node_index) == index2nodeptr.end()) {
-        index2nodeptr.insert({node_index, node});
+        index2nodeptr.insert({node_index, node.get()});
         return true;
     }
     else {
@@ -408,7 +419,7 @@ bool Broke::AddNode(Node* const node) {
         return false;
     }
 }
-bool Broke::DelNode(Node* const node) {
+bool Broke::DelNode(shared_ptr<Node> node) {
     // 先删索引，再恢复 totalnode
     // index 不一定存在，先判断
     // 还要删除Topic下，对应的？【有没有简单点的方法？】
@@ -423,6 +434,9 @@ bool Broke::DelNode(Node* const node) {
     index2nodeptr.erase(node_index);
     guard1.unlock();
     guard2.unlock();
+    // 还未完成！
+
+    return true;
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -446,7 +460,7 @@ void AccpetThread(Broke* const b) {
     }
 }
 void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
-    Node* mynode = new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd);
+    shared_ptr<Node> mynode(new Node(inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port, connectfd));
     int32_t index_temp = b->AllocIndex();
     if (index_temp <= 0 || mynode->SetIndex(index_temp) <= 0) {
         // 序号分配/设置出错
@@ -483,9 +497,11 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
                 // 设置状态
                 mynode->SetState(_connected);
                 // 开启 读写 线程
+                mynode->ProtectThread.lock();
                 thread t1(ReadThread, b, mynode);
-                thread t2(WriteThread, b, mynode);
                 t1.detach();
+                mynode->ProtectThread.unlock();
+                thread t2(WriteThread, b, mynode);
                 t2.detach();
             }
             else {
@@ -498,20 +514,66 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
         default:
         {
             printf("something error happened in [ConnectThread, switch]\n");
-            delete mynode;
+            
             break;
         }
     }
     mynode->WaitForClose();
     // broke 删除 mynode
     b->DelNode(mynode);
-    delete mynode;
 }
-void ReadThread(Broke* const b, Node* const node) {
-    
+void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
+    mynode->ProtectThread.lock();
+    printf("node %d start readthread", mynode->GetIndex());
+    mynode->ProtectThread.unlock();
+    int connectFd = mynode->GetConnFd();
+    char *buffer = new char[MAX_BUFFER_SIZE];
+    /* 要改，最好只有一个 read 调用入口 */
+    while (1) {
+        // ---------------------------------------------------------
+        // 获取头部
+        int RecvMsgLen = 0;
+        shared_ptr<char> real_msg(new char[MAX_BUFFER_SIZE]);
+        Head head;
+        int RecvMsgLen1 = read(connectFd, buffer, headlength);
+        if (RecvMsgLen1 <= 0)
+            break;
+        else {
+            if (RecvMsgLen1 >= headlength) {
+                // 分析头部
+                // out((uint8_t*)buffer, RecvMsgLen);
+                GetHead(head, buffer);
+                // 获取数据
+                int RecvMsgLen2 = read(connectFd, buffer + RecvMsgLen, head.data_len + head.topic_name_len - (RecvMsgLen - headlength));
+                out((uint8_t*)buffer, RecvMsgLen1 + RecvMsgLen2);
+                // 目前为止，buffer中存储了8字节的头部，和所有的消息
+                // 总字节长度 ： RecvMsgLen1 + RecvMsgLen2
+                RecvMsgLen = RecvMsgLen1 + RecvMsgLen2;
+            }
+            else {
+                // 接收剩下的头
+                int remain = headlength - RecvMsgLen;
+                int RecvMsgLen2 = read(connectFd, buffer + RecvMsgLen1, remain);
+                if (RecvMsgLen2 >= remain) {
+                    // 分析头部
+                    // out((uint8_t*)buffer, RecvMsgLen);
+                    GetHead(head, buffer);
+                    // 获取数据
+                    int RecvMsgLen3 = read(connectFd, buffer + RecvMsgLen1 + RecvMsgLen2, head.data_len + head.topic_name_len - (RecvMsgLen1 + RecvMsgLen2 - headlength));
+                    out((uint8_t*)buffer, RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3);
+                    // 目前为止，buffer中存储了8字节的头部，和所有的消息
+                    // 总字节长度 ： RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3
+                    RecvMsgLen = RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3;
+                }
+            }
+        }
+        // ---------------------------------------------------------
+    }
 }
-void WriteThread(Broke* const b, Node* const node) {
-    
+void WriteThread(Broke* const b, shared_ptr<Node> mynode) {
+    mynode->ProtectThread.lock();
+    printf("node %d start writethread", mynode->GetIndex());
+    mynode->ProtectThread.unlock();
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
