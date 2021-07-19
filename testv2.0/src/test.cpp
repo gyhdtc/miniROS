@@ -44,12 +44,12 @@ public:
         printf("gyh2\n");
     }
 };
-
-
+void fun(A a) {
+    a.func();
+}
 int main() {
-    A* a = new B;
-    a->func();
-    B* b = (B*)a;
-    b->func();
+    B* b = new B;
+    B b2;
+    fun(b2);
     return 0;
 }

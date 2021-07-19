@@ -435,6 +435,7 @@ bool Broke::DelNode(shared_ptr<Node> node) {
     guard1.unlock();
     guard2.unlock();
     // 还未完成！
+    // 要删除掉节点下所有有关话题
 
     return true;
 }
@@ -514,7 +515,7 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
         default:
         {
             printf("something error happened in [ConnectThread, switch]\n");
-            
+            mynode->SetState(_close);
             break;
         }
     }
@@ -526,48 +527,43 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
     mynode->ProtectThread.lock();
     printf("node %d start readthread", mynode->GetIndex());
     mynode->ProtectThread.unlock();
+
     int connectFd = mynode->GetConnFd();
     char *buffer = new char[MAX_BUFFER_SIZE];
-    /* 要改，最好只有一个 read 调用入口 !!! */
-    while (1) {
-        // ---------------------------------------------------------
-        // 获取头部
-        int RecvMsgLen = 0;
-        shared_ptr<char> real_msg(new char[MAX_BUFFER_SIZE]);
+    bool MsgFlag = true;
+    
+    while (MsgFlag) {
+        // 获取头部---------------------------------------------------------
+        int RecvHeadLen = headlength;
         Head head;
-        int RecvMsgLen1 = read(connectFd, buffer, headlength);
-        if (RecvMsgLen1 <= 0)
-            break;
-        else {
-            if (RecvMsgLen1 >= headlength) {
-                // 分析头部
-                // out((uint8_t*)buffer, RecvMsgLen);
-                GetHead(head, buffer);
-                // 获取数据
-                int RecvMsgLen2 = read(connectFd, buffer + RecvMsgLen, head.data_len + head.topic_name_len - (RecvMsgLen - headlength));
-                out((uint8_t*)buffer, RecvMsgLen1 + RecvMsgLen2);
-                // 目前为止，buffer中存储了8字节的头部，和所有的消息
-                // 总字节长度 ： RecvMsgLen1 + RecvMsgLen2
-                RecvMsgLen = RecvMsgLen1 + RecvMsgLen2;
-            }
-            else {
-                // 接收剩下的头
-                int remain = headlength - RecvMsgLen;
-                int RecvMsgLen2 = read(connectFd, buffer + RecvMsgLen1, remain);
-                if (RecvMsgLen2 >= remain) {
-                    // 分析头部
-                    // out((uint8_t*)buffer, RecvMsgLen);
-                    GetHead(head, buffer);
-                    // 获取数据
-                    int RecvMsgLen3 = read(connectFd, buffer + RecvMsgLen1 + RecvMsgLen2, head.data_len + head.topic_name_len - (RecvMsgLen1 + RecvMsgLen2 - headlength));
-                    out((uint8_t*)buffer, RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3);
-                    // 目前为止，buffer中存储了8字节的头部，和所有的消息
-                    // 总字节长度 ： RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3
-                    RecvMsgLen = RecvMsgLen1 + RecvMsgLen2 + RecvMsgLen3;
-                }
-            }
+        int MsgLen = 0;
+        while (MsgFlag && RecvHeadLen > 0) {
+            MsgLen = read(connectFd, buffer, RecvHeadLen);
+            if (MsgLen > 0)
+                RecvHeadLen -= MsgLen;
+            else
+                MsgFlag = false;
         }
-        // ---------------------------------------------------------
+        if (MsgFlag) GetHead(head, buffer);
+        else continue;
+        // 获取数据---------------------------------------------------------
+        int RecvTopicNameLen = head.topic_name_len;
+        int RecvDataLen = head.data_len;
+        int RecvBodylen = RecvTopicNameLen + RecvDataLen;
+        while (MsgFlag && RecvBodylen > 0) {
+            MsgLen = read(connectFd, buffer, RecvBodylen);
+            if (MsgLen > 0)
+                RecvHeadLen -= MsgLen;
+            else
+                MsgFlag = false;
+        }
+        // 开一个线程处理数据---------------------------------------------------------
+        if (MsgFlag) {
+            
+        }
+        else {
+            continue;
+        }
     }
 }
 void WriteThread(Broke* const b, shared_ptr<Node> mynode) {
