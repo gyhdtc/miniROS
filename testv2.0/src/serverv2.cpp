@@ -1,5 +1,4 @@
 #include "../include/headv2.0.h"
-
 /* 声明一些线程函数 */
 // 等待连接线程
 void AccpetThread(Broke* const);
@@ -8,7 +7,6 @@ void ConnectThread(Broke* const, int, sockaddr_in);
 // 新节点的 读/写 线程
 void ReadThread(Broke* const, shared_ptr<Node> mynode);
 void WriteThread(Broke* const, shared_ptr<Node> mynode);
-
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 class Server
@@ -61,112 +59,6 @@ int Server::Accept(struct sockaddr_in& cliaddr) {
     socklen_t cliaddrlen = sizeof(cliaddr);
     clifd = accept(listenfd, (struct sockaddr*)&cliaddr, &cliaddrlen);
     return clifd;
-}
-/* ---------------------------------------------------------------------- */
-/* ---------------------------------------------------------------------- */
-class Node
-{
-private:
-    // 状态
-    int State;
-    mutex StateLock;
-    // 关闭状态的条件变量
-    condition_variable CloseCv;
-    // 节点序号
-    int32_t nodeIndex;
-    bool IndexFlag;
-    bool TimeOutflag;
-    mutex IndexLock;
-    // 序号重获的条件变量
-    condition_variable IndexResetCv;
-    // 连接后，不变
-    string nodeIp;
-    int nodePort;
-    int connectfd;
-    // 数据传输后，不变
-    string nodeName;
-    // 节点 订阅/发布 的话题
-    vector<string> subTopicList;
-    vector<string> pubTopicList;
-public:
-    // 在创建多线程的时候，用来保护node数据不出错
-    // 有时候也用来保护 shared ptr 的引用记数正确
-    mutex ProtectThread;
-    int GetConnFd() const { return connectfd; }
-    int32_t GetIndex();
-    bool ResetIndex(int);
-    int SetIndex(int32_t);
-    int GetState();
-    void SetState(int);
-    void WaitForClose();
-    Node(string ip, int port, int fd)
-    {
-        nodeIp = ip;
-        nodePort = port;
-        connectfd = fd;
-        nodeIndex = 0x00000000;
-        State = _newconnect;
-        IndexFlag = false;
-        TimeOutflag = false;
-        printf("Create a node = %s:%d\n", nodeIp.c_str(), nodePort);
-    }
-    ~Node()
-    {
-        printf("Close a Node = %s:%d\n", nodeIp.c_str(), nodePort);
-        close(connectfd);
-    }
-};
-// -1: 超时 
-// 0 : 已经设置
-// 1 : 设置成功
-int Node::SetIndex(int32_t index) {
-    unique_lock<mutex> lk(IndexLock);
-    if (TimeOutflag == true) {
-        return -1;
-    }
-    else {
-        if (IndexFlag == true) {
-            return 0;
-        }
-        else {
-            nodeIndex = index;
-            IndexFlag = true;
-            if (State == _connect_wait)
-                IndexResetCv.notify_one();
-            return 1;
-        }
-    }
-}
-bool Node::ResetIndex(int timeout = 3) {
-    unique_lock<mutex> lk(IndexLock);
-    printf("Re-Set Index = %s:%d\n", nodeIp.c_str(), nodePort);
-    // 要么 超时，要么IndexFlag 设置好了之后被唤醒
-    IndexResetCv.wait_for(lk, chrono::seconds(timeout), [this](){ return IndexFlag == true; });
-    if (IndexFlag == false)
-        TimeOutflag = true;
-    return IndexFlag;
-}
-int32_t Node::GetIndex() {
-    unique_lock<mutex> lk(IndexLock);
-    return nodeIndex;
-}
-void Node::SetState(int transferstate) {
-    unique_lock<mutex> lk(StateLock);
-    if (state_transfer[State][transferstate] == 1) {
-        State = transferstate;
-        printf("Set Node-%d State to %s\n", nodeIndex, DP[transferstate].c_str());
-        if (State == _close) CloseCv.notify_one();
-        return;
-    }
-    return;
-}
-int Node::GetState() {
-    unique_lock<mutex> lk(StateLock);
-    return State;
-}
-void Node::WaitForClose() {
-    unique_lock<mutex> lk(StateLock);
-    CloseCv.wait(lk, [this](){ return State == _close; });
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -358,6 +250,144 @@ void Topic::printIndex(uint32_t index) {
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
+class Node
+{
+private:
+    // 状态
+    int State;
+    mutex StateLock;
+    // 关闭状态的条件变量
+    condition_variable CloseCv;
+    // 节点序号
+    int32_t nodeIndex;
+    bool IndexFlag;
+    bool TimeOutflag;
+    mutex IndexLock;
+    // 序号重获的条件变量
+    condition_variable IndexResetCv;
+    // 连接后，不变
+    string nodeIp;
+    int nodePort;
+    int connectfd;
+    // 数据传输后，不变
+    string nodeName;
+    // 节点 订阅/发布 的话题
+    vector<string> subTopicList;
+    vector<string> pubTopicList;
+    // 数据消息
+    deque<Msg> Message;
+    mutex MsgLock;
+    condition_variable MsgCv;
+    sem_t Msg_Sem;
+public:
+    // 在创建多线程的时候，用来保护node数据不出错
+    // 有时候也用来保护 shared ptr 的引用记数正确
+    mutex ProtectThread;
+    int GetConnFd() const { return connectfd; }
+    // 节点序列号设置
+    int32_t GetIndex();
+    bool ResetIndex(int);
+    int SetIndex(int32_t);
+    // 节点状态设置
+    int GetState();
+    void SetState(int);
+    // 等待节点关闭
+    void WaitForClose();
+    // 发送函数
+    void SendMsg();
+    void SendCheckHeart(Msg);
+    void SendCheckReg(Msg);
+    void SendData(Msg);
+    Node(string ip, int port, int fd)
+    {
+        nodeIp = ip;
+        nodePort = port;
+        connectfd = fd;
+        nodeIndex = 0x00000000;
+        State = _newconnect;
+        IndexFlag = false;
+        TimeOutflag = false;
+        // 初始化信号量
+        int ret = sem_init(&Msg_Sem, 0, 0);
+        printf("Create a node = %s:%d\n", nodeIp.c_str(), nodePort);
+    }
+    ~Node()
+    {
+        printf("Close a Node = %s:%d\n", nodeIp.c_str(), nodePort);
+        close(connectfd);
+        sem_destroy(&Msg_Sem);
+    }
+};
+// -1: 超时 。 0 : 已经设置 。1 : 设置成功
+int Node::SetIndex(int32_t index) {
+    unique_lock<mutex> lk(IndexLock);
+    if (TimeOutflag == true) {
+        return -1;
+    }
+    else {
+        if (IndexFlag == true) {
+            return 0;
+        }
+        else {
+            nodeIndex = index;
+            IndexFlag = true;
+            if (State == _connect_wait)
+                IndexResetCv.notify_one();
+            return 1;
+        }
+    }
+}
+bool Node::ResetIndex(int timeout = 3) {
+    unique_lock<mutex> lk(IndexLock);
+    printf("Re-Set Index = %s:%d\n", nodeIp.c_str(), nodePort);
+    // 要么 超时，要么IndexFlag 设置好了之后被唤醒
+    IndexResetCv.wait_for(lk, chrono::seconds(timeout), [this](){ return IndexFlag == true; });
+    if (IndexFlag == false)
+        TimeOutflag = true;
+    return IndexFlag;
+}
+int32_t Node::GetIndex() {
+    unique_lock<mutex> lk(IndexLock);
+    return nodeIndex;
+}
+void Node::SetState(int transferstate) {
+    unique_lock<mutex> lk(StateLock);
+    if (state_transfer[State][transferstate] == 1) {
+        State = transferstate;
+        printf("Set Node-%d State to %s\n", nodeIndex, DP[transferstate].c_str());
+        if (State == _close) CloseCv.notify_one();
+        return;
+    }
+    return;
+}
+int Node::GetState() {
+    unique_lock<mutex> lk(StateLock);
+    return State;
+}
+void Node::WaitForClose() {
+    unique_lock<mutex> lk(StateLock);
+    CloseCv.wait(lk, [this](){ return State == _close; });
+}
+void Node::SendData(Msg message) {
+    unique_lock<mutex> lk(MsgLock);
+    Message.push_back(message);
+    sem_post(&Msg_Sem);
+}
+void Node::SendCheckHeart(Msg message) {
+    unique_lock<mutex> lk(MsgLock);
+    Message.push_back(message);
+    sem_post(&Msg_Sem);
+}
+void Node::SendCheckReg(Msg message) {
+    unique_lock<mutex> lk(MsgLock);
+    Message.push_back(message);
+    sem_post(&Msg_Sem);
+}
+void Node::SendMsg() {
+    sem_wait(&Msg_Sem);
+}
+/* ---------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
 class Broke
 {
 private:
@@ -365,14 +395,23 @@ private:
     mutex IndexLock;
     Server* server;
     Topic* topic;
-    map<int32_t, Node*> index2nodeptr;
+    map<int32_t, shared_ptr<Node>> index2nodeptr;
     mutex Index2NodeptrLock;
+    // 数据有关的成员
+    deque<Msg> Message;
+    mutex MsgLock;
+    condition_variable MsgCv;
 public:
+    // 创建连接
     void StartServer(string, int);
     int WaitAccpet(struct sockaddr_in&);
+    // 管理节点
     int32_t AllocIndex();
     bool AddNode(shared_ptr<Node>);
     bool DelNode(shared_ptr<Node>);
+    // 处理数据的函数
+    void MsgHandler(shared_ptr<Node>, shared_ptr<char>, Head);
+
     Broke()
     {
         totalNode = 0;
@@ -382,7 +421,6 @@ public:
     }
     ~Broke()
     {
-        for (auto i : index2nodeptr) delete i.second;
         delete topic;
         delete server;
         printf("Stop broke\n");
@@ -411,7 +449,7 @@ bool Broke::AddNode(shared_ptr<Node> node) {
     int32_t node_index = node->GetIndex();
     unique_lock<mutex> lk(Index2NodeptrLock);
     if (index2nodeptr.find(node_index) == index2nodeptr.end()) {
-        index2nodeptr.insert({node_index, node.get()});
+        index2nodeptr.insert({node_index, node});
         return true;
     }
     else {
@@ -422,7 +460,6 @@ bool Broke::AddNode(shared_ptr<Node> node) {
 bool Broke::DelNode(shared_ptr<Node> node) {
     // 先删索引，再恢复 totalnode
     // index 不一定存在，先判断
-    // 还要删除Topic下，对应的？【有没有简单点的方法？】
     unique_lock<mutex> guard1(IndexLock);
     unique_lock<mutex> guard2(Index2NodeptrLock);
     int32_t node_index = node->GetIndex();
@@ -434,10 +471,87 @@ bool Broke::DelNode(shared_ptr<Node> node) {
     index2nodeptr.erase(node_index);
     guard1.unlock();
     guard2.unlock();
-    // 还未完成！
-    // 要删除掉节点下所有有关话题
-
+    // 要删除掉节点与话题的映射
+    topic->delTopic("all", node_index);
     return true;
+}
+void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head head) {
+    Msg msg;
+    msg.buffer = buffer;
+    msg.head = head;
+    switch (head.type)
+    {
+    case heartbeat:
+    {
+        printf("get heartbeat\n");
+        // 直接调用节点的心跳返回函数
+        *(buffer.get()+1) = checkheartbeat;
+        msg.head.type = checkheartbeat;
+        mynode->SendCheckHeart(msg);
+        break;
+    }
+    case getheartbeat:
+    {
+        printf("get getheartbeat\n");
+        // broke 按道理是不会有确认心跳的
+        // 应该调用节点类的client部分的函数。还没开始写呢。
+        break;
+    }
+    case subtopic:
+    {
+        printf("get subtopic\n");
+        // 节点订阅
+        // 调用broke的函数创建映射关系
+        // 调用节点自己的函数。添加进入node类中的subTopicList
+        string topicname(buffer.get()+8, int(head.topic_name_len));
+        uint32_t node_index = int82node_index(head.node_index);
+        topic->subTopic(topicname, node_index);
+        break;
+    }
+    case pubtopic:
+    {
+        printf("get pubtopic\n");
+        // 发布订阅
+        // 调用broke的函数创建映射关系
+        // 调用节点自己的函数。添加进入node类中的pubTopicList
+        string topicname(buffer.get()+8, int(head.topic_name_len));
+        uint32_t node_index = int82node_index(head.node_index);
+        topic->pubTopic(topicname, node_index);
+        break;
+    }
+    case deltopic:
+    {
+        printf("get deltopic\n");
+        // 删除订阅
+        // 调用broke的函数删除映射关系
+        // 调用节点自己的函数。从node类中的pubTopicList和subTopicList删除
+        string topicname(buffer.get()+8, int(head.topic_name_len));
+        uint32_t node_index = int82node_index(head.node_index);
+        topic->delTopic(topicname, node_index);
+        break;
+    }
+    case regnode:
+        printf("get regnode\n");
+        // 节点注册
+        // 转换节点状态，确认节点name；并返回确认注册的状态，这个直接调用node的确认注册函数
+        break;
+    case getregnode:
+        printf("get getregnode\n");
+        // broke 按道理是不会受到这个的
+        break;
+    case reconnect:
+        printf("get reconnect\n");
+        // 未完待续
+        break;
+    case data:
+        printf("get data\n");
+        // 收到了数据
+        // MsgCopyToNode 线程会被唤醒，并进行操作
+        break;
+    default:
+        printf("error message head\n");
+        break;
+    }
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -529,37 +643,41 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
     mynode->ProtectThread.unlock();
 
     int connectFd = mynode->GetConnFd();
-    char *buffer = new char[MAX_BUFFER_SIZE];
     bool MsgFlag = true;
     
     while (MsgFlag) {
+        shared_ptr<char> buffer(new char[MAX_BUFFER_SIZE]);
         // 获取头部---------------------------------------------------------
         int RecvHeadLen = headlength;
         Head head;
         int MsgLen = 0;
         while (MsgFlag && RecvHeadLen > 0) {
-            MsgLen = read(connectFd, buffer, RecvHeadLen);
+            MsgLen = read(connectFd, buffer.get(), RecvHeadLen);
             if (MsgLen > 0)
                 RecvHeadLen -= MsgLen;
             else
                 MsgFlag = false;
         }
-        if (MsgFlag) GetHead(head, buffer);
-        else continue;
+        if (MsgFlag) {
+            GetHead(head, buffer.get());
+        }
+        else {
+            continue;
+        }
         // 获取数据---------------------------------------------------------
         int RecvTopicNameLen = head.topic_name_len;
         int RecvDataLen = head.data_len;
         int RecvBodylen = RecvTopicNameLen + RecvDataLen;
         while (MsgFlag && RecvBodylen > 0) {
-            MsgLen = read(connectFd, buffer, RecvBodylen);
+            MsgLen = read(connectFd, buffer.get(), RecvBodylen);
             if (MsgLen > 0)
-                RecvHeadLen -= MsgLen;
+                RecvBodylen -= MsgLen;
             else
                 MsgFlag = false;
         }
-        // 开一个线程处理数据---------------------------------------------------------
+        // 处理数据---------------------------------------------------------
         if (MsgFlag) {
-            
+            b->MsgHandler(mynode, buffer, head);
         }
         else {
             continue;
@@ -570,6 +688,16 @@ void WriteThread(Broke* const b, shared_ptr<Node> mynode) {
     mynode->ProtectThread.lock();
     printf("node %d start writethread", mynode->GetIndex());
     mynode->ProtectThread.unlock();
+    while (1) {
+        // 等待被唤醒
+        mynode->SendMsg();
+        // 发送
+
+    }
+    
+}
+void MsgCopyToNode(shared_ptr<char>&& buffer) {
+
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
