@@ -561,7 +561,8 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             mynode->SetName(node_name);
             msg.head.type = getregnode;
             msg.head.return_node_index = node_index2int8(mynode->GetIndex());
-            
+            string2Msg(msg, "", "");
+            mynode->SendCheckReg(msg);
             break;
         }
         case getregnode:
