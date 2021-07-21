@@ -27,9 +27,14 @@ void func() {
 int main() {
     // func();
     // sleep(3);
-    uint8_t a = 0b01000110;
-    if (a == 0b01000111) cout << "shit\n";
-    cout << a << endl;
+    // uint8_t a = 0b01000110;
+    // if (a == 0b01000111) cout << "shit\n";
+    // cout << a << endl;
+    Head h;
+    cout << sizeof(h) << endl;
+    char * s = (char *)(&h);
+    h.type = heartbeat;
+    cout << int(s[0]) << endl;
     return 0;
 }
 // class A {

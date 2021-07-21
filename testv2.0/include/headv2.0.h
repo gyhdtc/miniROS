@@ -84,10 +84,22 @@ struct Head {
     uint8_t check_code;
     uint8_t return_node_index;
     uint16_t resever_int; // 保留字节
+    Head() {
+        type = 0b00;
+        node_index = 0b00;
+        topic_name_len = 0b00;
+        data_len = 0b00;
+        check_code = 0b00;
+        return_node_index = 0b00;
+        resever_int = 0b0000;
+    }
 };
 struct Msg {
     Head head;
     shared_ptr<char> buffer;
+    Msg() {
+        buffer = NULL;
+    }
 };
 // 头部解析
 void GetHead(Head& h, const void* start) {
@@ -141,4 +153,53 @@ uint32_t int82node_index(uint8_t node_index) {
         res = res << 1;
     }
     return res;
+}
+// 生成校验码
+uint8_t codeGenera(const char *Msg, int len) {
+    uint8_t res = 0;
+    for (int i = 0; i < len; ++i) {
+        uint8_t t = 0x01;
+        for (int j = 0; j < 8; ++j) {
+            if (((*(Msg+i)) & t) != 0x00) {
+                res = res % 256 + 1;
+            }
+            t = t << 1;
+        }
+    }
+    return res;
+}
+// string转到const char*
+void string2Msg(Msg msg, const string& topicname, const string& data) {
+    assert(sizeof(msg.head) == 8);
+    int len = 8 + topicname.size() + data.size();
+    shared_ptr<char> buffer(new char[len]);
+    if (data == "" && topicname == "") {
+        memcpy(buffer.get(), &msg.head, 8);    
+    }
+    else {
+        for (int i = 0; i < topicname.size(); i++) {
+            *(buffer.get()+8+i) = topicname[i];
+        }
+        for (int i = 0; i < data.size(); i++) {
+            *(buffer.get()+8+topicname.size()+i) = data[i];
+        }
+    }
+    msg.buffer = buffer;
+}
+void string2Msg(Msg msg, const string&& topicname, const string&& data) {
+    assert(sizeof(msg.head) == 8);
+    int len = 8 + topicname.size() + data.size();
+    shared_ptr<char> buffer(new char[len]);
+    if (data == "" && topicname == "") {
+        memcpy(buffer.get(), &msg.head, 8);    
+    }
+    else {
+        for (int i = 0; i < topicname.size(); i++) {
+            *(buffer.get()+8+i) = topicname[i];
+        }
+        for (int i = 0; i < data.size(); i++) {
+            *(buffer.get()+8+topicname.size()+i) = data[i];
+        }
+    }
+    msg.buffer = buffer;
 }

@@ -272,12 +272,11 @@ private:
     // 数据传输后，不变
     string nodeName;
     // 节点 订阅/发布 的话题
-    vector<string> subTopicList;
-    vector<string> pubTopicList;
+    set<string> subTopicList;
+    set<string> pubTopicList;
     // 数据消息
     deque<Msg> Message;
     mutex MsgLock;
-    condition_variable MsgCv;
     sem_t Msg_Sem;
 public:
     // 在创建多线程的时候，用来保护node数据不出错
@@ -298,6 +297,11 @@ public:
     void SendCheckHeart(Msg);
     void SendCheckReg(Msg);
     void SendData(Msg);
+    void SetName(string name) { nodeName = name; }
+    // 处理话题信息
+    void AddSub(string name) { subTopicList.insert(name); }
+    void AddPub(string name) { pubTopicList.insert(name); }
+    void deltopic(string);
     Node(string ip, int port, int fd)
     {
         nodeIp = ip;
@@ -386,6 +390,17 @@ void Node::SendCheckReg(Msg message) {
 void Node::SendMsg() {
     sem_wait(&Msg_Sem);
 }
+void Node::deltopic(string name) {
+    if (pubTopicList.find(name) != pubTopicList.end()) {
+        pubTopicList.erase(name);
+    }
+    else if (subTopicList.find(name) != subTopicList.end()) {
+        subTopicList.erase(name);
+    }
+    else {
+        printf("No this topic\n");
+    }
+}
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 class Broke
@@ -411,7 +426,6 @@ public:
     bool DelNode(shared_ptr<Node>);
     // 处理数据的函数
     void MsgHandler(shared_ptr<Node>, shared_ptr<char>, Head);
-
     Broke()
     {
         totalNode = 0;
@@ -477,80 +491,103 @@ bool Broke::DelNode(shared_ptr<Node> node) {
 }
 void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head head) {
     Msg msg;
-    msg.buffer = buffer;
-    msg.head = head;
     switch (head.type)
     {
-    case heartbeat:
-    {
-        printf("get heartbeat\n");
-        // 直接调用节点的心跳返回函数
-        *(buffer.get()+1) = checkheartbeat;
-        msg.head.type = checkheartbeat;
-        mynode->SendCheckHeart(msg);
-        break;
-    }
-    case getheartbeat:
-    {
-        printf("get getheartbeat\n");
-        // broke 按道理是不会有确认心跳的
-        // 应该调用节点类的client部分的函数。还没开始写呢。
-        break;
-    }
-    case subtopic:
-    {
-        printf("get subtopic\n");
-        // 节点订阅
-        // 调用broke的函数创建映射关系
-        // 调用节点自己的函数。添加进入node类中的subTopicList
-        string topicname(buffer.get()+8, int(head.topic_name_len));
-        uint32_t node_index = int82node_index(head.node_index);
-        topic->subTopic(topicname, node_index);
-        break;
-    }
-    case pubtopic:
-    {
-        printf("get pubtopic\n");
-        // 发布订阅
-        // 调用broke的函数创建映射关系
-        // 调用节点自己的函数。添加进入node类中的pubTopicList
-        string topicname(buffer.get()+8, int(head.topic_name_len));
-        uint32_t node_index = int82node_index(head.node_index);
-        topic->pubTopic(topicname, node_index);
-        break;
-    }
-    case deltopic:
-    {
-        printf("get deltopic\n");
-        // 删除订阅
-        // 调用broke的函数删除映射关系
-        // 调用节点自己的函数。从node类中的pubTopicList和subTopicList删除
-        string topicname(buffer.get()+8, int(head.topic_name_len));
-        uint32_t node_index = int82node_index(head.node_index);
-        topic->delTopic(topicname, node_index);
-        break;
-    }
-    case regnode:
-        printf("get regnode\n");
-        // 节点注册
-        // 转换节点状态，确认节点name；并返回确认注册的状态，这个直接调用node的确认注册函数
-        break;
-    case getregnode:
-        printf("get getregnode\n");
-        // broke 按道理是不会受到这个的
-        break;
-    case reconnect:
-        printf("get reconnect\n");
-        // 未完待续
-        break;
-    case data:
-        printf("get data\n");
-        // 收到了数据
-        // MsgCopyToNode 线程会被唤醒，并进行操作
-        break;
-    default:
-        printf("error message head\n");
-        break;
+        case heartbeat:
+        {
+            printf("get heartbeat\n");
+            // 直接调用节点的心跳返回函数
+            *buffer.get() = checkheartbeat;
+            msg.head =  head;
+            msg.buffer = buffer;
+            msg.head.type = checkheartbeat;
+            mynode->SendCheckHeart(msg);
+            break;
+        }
+        case getheartbeat:
+        {
+            printf("get getheartbeat\n");
+            // broke 按道理是不会有确认心跳的
+            // 应该调用节点类的client部分的函数。还没开始写呢。
+            break;
+        }
+        // 对于 topic 的操作其实应该开线程，否则客户端一多就会堵
+        case subtopic:
+        {
+            printf("get subtopic\n");
+            // 节点订阅
+            // 调用broke的函数创建映射关系
+            // 调用节点自己的函数。添加进入node类中的subTopicList
+            string topicname(buffer.get()+8, int(head.topic_name_len));
+            uint32_t node_index = int82node_index(head.node_index);
+            uint8_t check_code = codeGenera(buffer.get()+8, head.topic_name_len);
+            assert(head.check_code == check_code);
+            topic->subTopic(topicname, node_index);
+            break;
+        }
+        case pubtopic:
+        {
+            printf("get pubtopic\n");
+            // 发布订阅
+            // 调用broke的函数创建映射关系
+            // 调用节点自己的函数。添加进入node类中的pubTopicList
+            string topicname(buffer.get()+8, int(head.topic_name_len));
+            uint32_t node_index = int82node_index(head.node_index);
+            uint8_t check_code = codeGenera(buffer.get()+8, head.topic_name_len);
+            assert(head.check_code == check_code);
+            topic->pubTopic(topicname, node_index);
+            break;
+        }
+        case deltopic:
+        {
+            printf("get deltopic\n");
+            // 删除订阅
+            // 调用broke的函数删除映射关系
+            // 调用节点自己的函数。从node类中的pubTopicList和subTopicList删除
+            string topicname(buffer.get()+8, int(head.topic_name_len));
+            uint32_t node_index = int82node_index(head.node_index);
+            uint8_t check_code = codeGenera(buffer.get()+8, head.topic_name_len);
+            assert(head.check_code == check_code);
+            topic->delTopic(topicname, node_index);
+            break;
+        }
+        // 对于 topic 的操作其实应该开线程，否则客户端一多就会堵
+        case regnode:
+        {
+            printf("get regnode\n");
+            // 节点注册
+            // 转换节点状态，确认节点name；并返回确认注册的状态，这个直接调用node的确认注册函数
+            string node_name(buffer.get()+8, head.data_len);
+            mynode->SetName(node_name);
+            msg.head.type = getregnode;
+            msg.head.return_node_index = node_index2int8(mynode->GetIndex());
+            
+            break;
+        }
+        case getregnode:
+        {
+            printf("get getregnode\n");
+            // broke 按道理是不会受到这个的
+            break;
+        }
+        case reconnect:
+        {
+            printf("get reconnect\n");
+            // 未完待续
+            break;
+        }
+        case data:
+        {
+            printf("get data\n");
+            // 收到了数据
+            // MsgCopyToNode 线程会被唤醒，并进行操作
+            break;
+        }
+        default:
+        {
+            printf("error message head\n");
+            break;
+        }
     }
 }
 /* ---------------------------------------------------------------------- */
