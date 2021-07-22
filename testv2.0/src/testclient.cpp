@@ -26,13 +26,22 @@ int main() {
     t.detach();
     if (ret >= 0) {
         while (1) {
-            uint8_t buffer[8];
+            uint8_t buffer[20];
             for (int i = 0; i < 8; i++) {
                 cin >> buffer[i];
                 buffer[i] -= '0';
                 cout << bitset<8>(buffer[i]) << endl;
             }
             if (buffer[0] == 255) break;
+            if (buffer[0] == 0b00010000) {
+                buffer[3] = 3;
+                buffer[4] = 13;
+                buffer[8] = 103;
+                buffer[9] = 121;
+                buffer[10] = 104;
+                write(sockClient, buffer, 11);
+                continue;
+            }
             write(sockClient, buffer, 8);
         }
     }

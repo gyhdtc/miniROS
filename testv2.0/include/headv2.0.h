@@ -116,8 +116,14 @@ void GetHead(Head& h, const void* start) {
 void out(uint8_t* a, size_t len) {
     cout << "---------------------\n";
     for (int i = 0; i < len; ++i) {
-        cout << bitset<8>(uint8_t(*(a+i))) << endl;
+        if (i < 8) {
+            cout << bitset<8>(uint8_t(*(a+i))) << endl;
+        }
+        else {
+            cout << *(a+i);
+        }
     }
+    if (len > 8) cout << endl;
     cout << "---------------------\n";
 }
 // 生成校验码：统计 1 的个数，和256取余

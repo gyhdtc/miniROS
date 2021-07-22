@@ -321,7 +321,7 @@ public:
     }
     ~Node()
     {
-        printf("Close a Node = %s:%d\n", nodeIp.c_str(), nodePort);
+        printf("Close a Node = %s:%d %s\n", nodeIp.c_str(), nodePort, nodeName.c_str());
         close(connectfd);
         sem_destroy(&Msg_Sem);
     }
@@ -720,7 +720,6 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
         else {
             continue;
         }
-        out((uint8_t *)buffer.get(), 8);
         // 获取数据---------------------------------------------------------
         int RecvTopicNameLen = head.topic_name_len;
         int RecvDataLen = head.data_len;
@@ -732,6 +731,7 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
             else
                 MsgFlag = false;
         }
+        out((uint8_t *)buffer.get(), headlength+head.topic_name_len+head.data_len);
         // 处理数据---------------------------------------------------------
         assert(head.check_code == codeGenera(buffer.get()+8, head.topic_name_len+head.data_len));
         if (MsgFlag) {
