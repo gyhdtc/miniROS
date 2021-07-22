@@ -295,7 +295,8 @@ public:
     // 等待节点关闭
     void WaitForClose();
     // 发送函数
-    int SendMsg();
+    void SendMsg();
+    void CloseWrite();
     void SendCheckHeart(Msg);
     void SendCheckReg(Msg);
     void SendData(Msg);
@@ -391,13 +392,11 @@ void Node::SendCheckReg(Msg message) {
     Message.push_back(message);
     sem_post(&Msg_Sem);
 }
-int Node::SendMsg() {
-    while (!sem_trywait(&Msg_Sem)) {
-        StateLock.lock();
-        if (State == _close) return 0;
-        StateLock.unlock();
-    }
-    return 1;
+void Node::CloseWrite() {
+    sem_post(&Msg_Sem);
+}
+void Node::SendMsg() {
+    sem_wait(&Msg_Sem);
 }
 void Node::deltopic(string name) {
     if (pubTopicList.find(name) != pubTopicList.end()) {
@@ -743,6 +742,7 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
         }
     }
     mynode->SetState(_close);
+    mynode->CloseWrite();
     printf("read stop\n");
 }
 void WriteThread(Broke* const b, shared_ptr<Node> mynode) {
@@ -750,12 +750,17 @@ void WriteThread(Broke* const b, shared_ptr<Node> mynode) {
     printf("node %d start writethread\n", mynode->GetIndex());
     mynode->ProtectThread.unlock();
     int connectFd = mynode->GetConnFd();
-    while (mynode->GetState() != _close) {
+    while (1) {
         // 等待被唤醒
         mynode->SendMsg();
         // 发送
-        Msg msg = mynode->GetTopMsg();
-        write(connectFd, msg.buffer.get(), headlength + msg.head.topic_name_len + msg.head.data_len);
+        if (mynode->GetState() != _close) {
+            Msg msg = mynode->GetTopMsg();
+            write(connectFd, msg.buffer.get(), headlength + msg.head.topic_name_len + msg.head.data_len);
+        }
+        else {
+            break;
+        }
     }
     printf("write stop\n");
 }
@@ -767,4 +772,5 @@ void MsgCopyToNode(Msg msg) {
 int main() {
     Broke* mybroke = new Broke;
     mybroke->StartServer(IPADDRESS, PORT);
+    delete mybroke;
 }
