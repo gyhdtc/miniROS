@@ -55,7 +55,7 @@ int state_transfer[7][7] =
 /* 5 */ 0,0,0,0,0,1,0,
 /* 6 */ 0,0,0,0,0,1,1
 };
-vector<string> DP({"", "newconnect", "connecting", "connected", "connect_wait", "close"});
+vector<string> DP({"", "newconnect", "connecting", "connected", "connect_wait", "close", "_online"});
 // 协议第一个字节的含义
 const uint8_t heartbeat     = 0b00000001;
 const uint8_t getheartbeat  = 0b00000010;

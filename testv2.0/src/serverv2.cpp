@@ -7,6 +7,8 @@ void ConnectThread(Broke* const, int, sockaddr_in);
 // 新节点的 读/写 线程
 void ReadThread(Broke* const, shared_ptr<Node> mynode);
 void WriteThread(Broke* const, shared_ptr<Node> mynode);
+// broke进行数据转发
+void MsgCopyToNode(Msg);
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 class Server
@@ -293,11 +295,12 @@ public:
     // 等待节点关闭
     void WaitForClose();
     // 发送函数
-    void SendMsg();
+    int SendMsg();
     void SendCheckHeart(Msg);
     void SendCheckReg(Msg);
     void SendData(Msg);
     void SetName(string name) { nodeName = name; }
+    Msg GetTopMsg();
     // 处理话题信息
     void AddSub(string name) { subTopicList.insert(name); }
     void AddPub(string name) { pubTopicList.insert(name); }
@@ -325,6 +328,7 @@ public:
 // -1: 超时 。 0 : 已经设置 。1 : 设置成功
 int Node::SetIndex(int32_t index) {
     unique_lock<mutex> lk(IndexLock);
+    printf("%d to node %s:%d\n", index, nodeIp.c_str(), nodePort);
     if (TimeOutflag == true) {
         return -1;
     }
@@ -387,8 +391,13 @@ void Node::SendCheckReg(Msg message) {
     Message.push_back(message);
     sem_post(&Msg_Sem);
 }
-void Node::SendMsg() {
-    sem_wait(&Msg_Sem);
+int Node::SendMsg() {
+    while (!sem_trywait(&Msg_Sem)) {
+        StateLock.lock();
+        if (State == _close) return 0;
+        StateLock.unlock();
+    }
+    return 1;
 }
 void Node::deltopic(string name) {
     if (pubTopicList.find(name) != pubTopicList.end()) {
@@ -400,6 +409,12 @@ void Node::deltopic(string name) {
     else {
         printf("No this topic\n");
     }
+}
+Msg Node::GetTopMsg() {
+    unique_lock<mutex> lk(MsgLock);
+    Msg msg = Message.front();
+    Message.pop_front();
+    return msg;
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -476,17 +491,18 @@ bool Broke::DelNode(shared_ptr<Node> node) {
     // index 不一定存在，先判断
     unique_lock<mutex> guard1(IndexLock);
     unique_lock<mutex> guard2(Index2NodeptrLock);
+    cout << "del node\n";
     int32_t node_index = node->GetIndex();
     // 删除节点下对应的topic
     topic->delTopic("all", node_index);
     // 恢复节点序号
     totalNode = totalNode & (0xffffffff ^ node_index);
     // 删除 节点序号---节点类 映射
+    cout << node.use_count() << endl;
     index2nodeptr.erase(node_index);
+    cout << node.use_count() << endl;
     guard1.unlock();
     guard2.unlock();
-    // 要删除掉节点与话题的映射
-    topic->delTopic("all", node_index);
     return true;
 }
 void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head head) {
@@ -520,8 +536,6 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             // 调用节点自己的函数。添加进入node类中的subTopicList
             string topicname(buffer.get()+8, int(head.topic_name_len));
             uint32_t node_index = int82node_index(head.node_index);
-            uint8_t check_code = codeGenera(buffer.get()+8, head.topic_name_len);
-            assert(head.check_code == check_code);
             topic->subTopic(topicname, node_index);
             break;
         }
@@ -533,8 +547,6 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             // 调用节点自己的函数。添加进入node类中的pubTopicList
             string topicname(buffer.get()+8, int(head.topic_name_len));
             uint32_t node_index = int82node_index(head.node_index);
-            uint8_t check_code = codeGenera(buffer.get()+8, head.topic_name_len);
-            assert(head.check_code == check_code);
             topic->pubTopic(topicname, node_index);
             break;
         }
@@ -546,8 +558,6 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             // 调用节点自己的函数。从node类中的pubTopicList和subTopicList删除
             string topicname(buffer.get()+8, int(head.topic_name_len));
             uint32_t node_index = int82node_index(head.node_index);
-            uint8_t check_code = codeGenera(buffer.get()+8, head.topic_name_len);
-            assert(head.check_code == check_code);
             topic->delTopic(topicname, node_index);
             break;
         }
@@ -582,6 +592,12 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             printf("get data\n");
             // 收到了数据
             // MsgCopyToNode 线程会被唤醒，并进行操作
+            msg.head = head;
+            msg.buffer = buffer;
+            msg.head.node_index = 0b00000000;
+            *(msg.buffer.get()+1) = 0;
+            thread t(MsgCopyToNode, msg);
+            t.detach();
             break;
         }
         default:
@@ -674,15 +690,16 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     mynode->WaitForClose();
     // broke 删除 mynode
     b->DelNode(mynode);
+    cout << mynode.use_count() << endl;
 }
 void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
     mynode->ProtectThread.lock();
-    printf("node %d start readthread", mynode->GetIndex());
+    printf("node %d start readthread\n", mynode->GetIndex());
     mynode->ProtectThread.unlock();
 
     int connectFd = mynode->GetConnFd();
     bool MsgFlag = true;
-    
+    mynode->SetState(_online);
     while (MsgFlag) {
         shared_ptr<char> buffer(new char[MAX_BUFFER_SIZE]);
         // 获取头部---------------------------------------------------------
@@ -702,18 +719,22 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
         else {
             continue;
         }
+        out((uint8_t *)buffer.get(), 8);
         // 获取数据---------------------------------------------------------
         int RecvTopicNameLen = head.topic_name_len;
         int RecvDataLen = head.data_len;
         int RecvBodylen = RecvTopicNameLen + RecvDataLen;
         while (MsgFlag && RecvBodylen > 0) {
-            MsgLen = read(connectFd, buffer.get(), RecvBodylen);
+            MsgLen = read(connectFd, buffer.get()+headlength, RecvBodylen);
             if (MsgLen > 0)
                 RecvBodylen -= MsgLen;
             else
                 MsgFlag = false;
         }
         // 处理数据---------------------------------------------------------
+        printf("%c\n", head.check_code);
+        printf("%c\n", codeGenera(buffer.get()+8, head.topic_name_len+head.data_len));
+        assert(head.check_code == codeGenera(buffer.get()+8, head.topic_name_len+head.data_len));
         if (MsgFlag) {
             b->MsgHandler(mynode, buffer, head);
         }
@@ -721,20 +742,24 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
             continue;
         }
     }
+    mynode->SetState(_close);
+    printf("read stop\n");
 }
 void WriteThread(Broke* const b, shared_ptr<Node> mynode) {
     mynode->ProtectThread.lock();
-    printf("node %d start writethread", mynode->GetIndex());
+    printf("node %d start writethread\n", mynode->GetIndex());
     mynode->ProtectThread.unlock();
-    while (1) {
+    int connectFd = mynode->GetConnFd();
+    while (mynode->GetState() != _close) {
         // 等待被唤醒
         mynode->SendMsg();
         // 发送
-
+        Msg msg = mynode->GetTopMsg();
+        write(connectFd, msg.buffer.get(), headlength + msg.head.topic_name_len + msg.head.data_len);
     }
-    
+    printf("write stop\n");
 }
-void MsgCopyToNode(shared_ptr<char>&& buffer) {
+void MsgCopyToNode(Msg msg) {
 
 }
 /* ---------------------------------------------------------------------- */
