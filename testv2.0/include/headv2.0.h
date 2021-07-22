@@ -67,9 +67,9 @@ const uint8_t getregnode    = 0b00100000;
 const uint8_t reconnect     = 0b01000000;
 const uint8_t data          = 0b10000000;
 // broke 中node发送消息的
-const int checkheartbeat = 0;
-const int checkreg = 1;
-const int senddata = 2;
+// const int checkheartbeat = 0;
+// const int checkreg = 1;
+// const int senddata = 2;
 /* 声明一些类 */
 class Server;
 class Node;

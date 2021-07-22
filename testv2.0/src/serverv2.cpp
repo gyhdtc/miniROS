@@ -497,9 +497,9 @@ bool Broke::DelNode(shared_ptr<Node> node) {
     // 恢复节点序号
     totalNode = totalNode & (0xffffffff ^ node_index);
     // 删除 节点序号---节点类 映射
-    cout << node.use_count() << endl;
+    // cout << node.use_count() << endl;
     index2nodeptr.erase(node_index);
-    cout << node.use_count() << endl;
+    // cout << node.use_count() << endl;
     guard1.unlock();
     guard2.unlock();
     return true;
@@ -512,10 +512,11 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
         {
             printf("get heartbeat\n");
             // 直接调用节点的心跳返回函数
-            *buffer.get() = checkheartbeat;
+            *buffer.get() = getheartbeat;
             msg.head =  head;
             msg.buffer = buffer;
-            msg.head.type = checkheartbeat;
+            msg.head.type = getheartbeat;
+            string2Msg(msg, "", "");
             mynode->SendCheckHeart(msg);
             break;
         }
@@ -620,6 +621,7 @@ void AccpetThread(Broke* const b) {
             perror("accpet error:");
         else
         {
+            printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
             printf("accept a new client: %s:%d\n", inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port);
             // 新的客户端连接
             thread t(ConnectThread, b, clifd, cliaddr);
@@ -689,7 +691,7 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     mynode->WaitForClose();
     // broke 删除 mynode
     b->DelNode(mynode);
-    cout << mynode.use_count() << endl;
+    // cout << mynode.use_count() << endl;
 }
 void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
     mynode->ProtectThread.lock();
@@ -731,8 +733,6 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
                 MsgFlag = false;
         }
         // 处理数据---------------------------------------------------------
-        printf("%c\n", head.check_code);
-        printf("%c\n", codeGenera(buffer.get()+8, head.topic_name_len+head.data_len));
         assert(head.check_code == codeGenera(buffer.get()+8, head.topic_name_len+head.data_len));
         if (MsgFlag) {
             b->MsgHandler(mynode, buffer, head);
