@@ -30,11 +30,19 @@ int main() {
     // uint8_t a = 0b01000110;
     // if (a == 0b01000111) cout << "shit\n";
     // cout << a << endl;
-    Head h;
-    cout << sizeof(h) << endl;
-    char * s = (char *)(&h);
-    h.type = heartbeat;
-    cout << int(s[0]) << endl;
+    // Head h;
+    // cout << sizeof(h) << endl;
+    // char * s = (char *)(&h);
+    // h.type = heartbeat;
+    // cout << int(s[0]) << endl;
+    shared_ptr<char> s(new char[1024]);
+    Msg msg;
+    msg.buffer = s;
+    msg.head.type = getregnode;
+    int32_t a = 0x00000010;
+    msg.head.return_node_index = node_index2int8(a);
+    string2Msg(msg, "", "");
+    out((uint8_t *)msg.buffer.get(), 8);
     return 0;
 }
 // class A {

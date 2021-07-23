@@ -85,13 +85,13 @@ struct Head {
     uint8_t return_node_index;
     uint16_t resever_int; // 保留字节
     Head() {
-        type = 0b00;
-        node_index = 0b00;
-        topic_name_len = 0b00;
-        data_len = 0b00;
-        check_code = 0b00;
-        return_node_index = 0b00;
-        resever_int = 0b0000;
+        type = 0x00;
+        node_index = 0x00;
+        topic_name_len = 0x00;
+        data_len = 0x00;
+        check_code = 0x00;
+        return_node_index = 0x00;
+        resever_int = 0x0000;
     }
 };
 struct Msg {
@@ -178,29 +178,9 @@ uint8_t codeGenera(const char *Msg, int len) {
 void string2Msg(Msg msg, const string& topicname, const string& data) {
     assert(sizeof(msg.head) == 8);
     int len = 8 + topicname.size() + data.size();
-    shared_ptr<char> buffer(new char[len]);
-    if (data == "" && topicname == "") {
-        memcpy(buffer.get(), &msg.head, 8);    
-    }
-    else {
-        for (int i = 0; i < topicname.size(); i++) {
-            *(buffer.get()+8+i) = topicname[i];
-        }
-        for (int i = 0; i < data.size(); i++) {
-            *(buffer.get()+8+topicname.size()+i) = data[i];
-        }
-    }
-    msg.buffer = buffer;
-}
-void string2Msg(Msg msg, const string&& topicname, const string&& data) {
-    cout << 3 << endl;
-    assert(sizeof(msg.head) == 8);
-    int len = 8 + topicname.size() + data.size();
     // shared_ptr<char> buffer(new char[len]);
     if (data == "" && topicname == "") {
-        cout << 4 << endl;
         memcpy(msg.buffer.get(), &msg.head, 8);    
-        cout << 5 << endl;
     }
     else {
         for (int i = 0; i < topicname.size(); i++) {
@@ -210,6 +190,20 @@ void string2Msg(Msg msg, const string&& topicname, const string&& data) {
             *(msg.buffer.get()+8+topicname.size()+i) = data[i];
         }
     }
-    cout << 6 << endl;
-    // msg.buffer = buffer;
+}
+void string2Msg(Msg msg, const string&& topicname, const string&& data) {
+    assert(sizeof(msg.head) == 8);
+    int len = 8 + topicname.size() + data.size();
+    // shared_ptr<char> buffer(new char[len]);
+    if (data == "" && topicname == "") {
+        memcpy(msg.buffer.get(), &msg.head, 8);    
+    }
+    else {
+        for (int i = 0; i < topicname.size(); i++) {
+            *(msg.buffer.get()+8+i) = topicname[i];
+        }
+        for (int i = 0; i < data.size(); i++) {
+            *(msg.buffer.get()+8+topicname.size()+i) = data[i];
+        }
+    }
 }
