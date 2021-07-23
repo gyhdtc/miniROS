@@ -572,7 +572,10 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             msg.head.type = getregnode;
             msg.head.return_node_index = node_index2int8(mynode->GetIndex());
             string2Msg(msg, "", "");
-            mynode->SendCheckReg(msg);
+            cout << 2 << endl;
+            out((uint8_t *)msg.buffer.get(), 8);
+            cout << 1 << endl;
+            // mynode->SendCheckReg(msg);
             break;
         }
         case getregnode:

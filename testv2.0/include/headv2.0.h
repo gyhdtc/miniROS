@@ -193,19 +193,23 @@ void string2Msg(Msg msg, const string& topicname, const string& data) {
     msg.buffer = buffer;
 }
 void string2Msg(Msg msg, const string&& topicname, const string&& data) {
+    cout << 3 << endl;
     assert(sizeof(msg.head) == 8);
     int len = 8 + topicname.size() + data.size();
-    shared_ptr<char> buffer(new char[len]);
+    // shared_ptr<char> buffer(new char[len]);
     if (data == "" && topicname == "") {
-        memcpy(buffer.get(), &msg.head, 8);    
+        cout << 4 << endl;
+        memcpy(msg.buffer.get(), &msg.head, 8);    
+        cout << 5 << endl;
     }
     else {
         for (int i = 0; i < topicname.size(); i++) {
-            *(buffer.get()+8+i) = topicname[i];
+            *(msg.buffer.get()+8+i) = topicname[i];
         }
         for (int i = 0; i < data.size(); i++) {
-            *(buffer.get()+8+topicname.size()+i) = data[i];
+            *(msg.buffer.get()+8+topicname.size()+i) = data[i];
         }
     }
-    msg.buffer = buffer;
+    cout << 6 << endl;
+    // msg.buffer = buffer;
 }
