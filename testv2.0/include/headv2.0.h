@@ -28,6 +28,8 @@
 #include <semaphore.h>
 using namespace std;
 #define int32_t uint32_t
+// 信号
+int KeepRunning = 1;
 // 定义常量
 #define IPADDRESS   "127.0.0.1"
 #define PORT        8787
@@ -205,5 +207,13 @@ void string2Msg(Msg msg, const string&& topicname, const string&& data) {
         for (int i = 0; i < data.size(); i++) {
             *(msg.buffer.get()+8+topicname.size()+i) = data[i];
         }
+    }
+}
+// ctrl + c 的程序中止线程
+void SigThread(int sig) {
+    if (sig == SIGINT || sig == SIGSTOP)
+    {
+        KeepRunning = 0;
+        cout << endl;
     }
 }

@@ -460,7 +460,8 @@ void Broke::StartServer(string ip, int port) {
     }
     server->Bind();
     server->Listen();
-    AccpetThread(this);
+    thread t(AccpetThread, this);
+    t.detach();
 }
 int Broke::WaitAccpet(struct sockaddr_in& cliaddr) {
     int connectfd = server->Accept(cliaddr);
@@ -488,20 +489,16 @@ bool Broke::AddNode(shared_ptr<Node> node) {
 bool Broke::DelNode(shared_ptr<Node> node) {
     // 先删索引，再恢复 totalnode
     // index 不一定存在，先判断
-    unique_lock<mutex> guard1(IndexLock);
-    unique_lock<mutex> guard2(Index2NodeptrLock);
-    cout << "del node\n";
+    unique_lock<mutex> lk(IndexLock);
+    unique_lock<mutex> lk2(Index2NodeptrLock);
     int32_t node_index = node->GetIndex();
+    printf("del node-%d\n", node_index);
     // 删除节点下对应的topic
     topic->delTopic("all", node_index);
     // 恢复节点序号
     totalNode = totalNode & (0xffffffff ^ node_index);
     // 删除 节点序号---节点类 映射
-    // cout << node.use_count() << endl;
     index2nodeptr.erase(node_index);
-    // cout << node.use_count() << endl;
-    guard1.unlock();
-    guard2.unlock();
     return true;
 }
 void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head head) {
@@ -536,7 +533,9 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             // 调用节点自己的函数。添加进入node类中的subTopicList
             string topicname(buffer.get()+8, int(head.topic_name_len));
             uint32_t node_index = int82node_index(head.node_index);
+            mynode->AddSub(topicname);
             topic->subTopic(topicname, node_index);
+            topic->printAll();
             break;
         }
         case pubtopic:
@@ -547,7 +546,9 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             // 调用节点自己的函数。添加进入node类中的pubTopicList
             string topicname(buffer.get()+8, int(head.topic_name_len));
             uint32_t node_index = int82node_index(head.node_index);
+            mynode->AddPub(topicname);
             topic->pubTopic(topicname, node_index);
+            topic->printAll();
             break;
         }
         case deltopic:
@@ -558,7 +559,9 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             // 调用节点自己的函数。从node类中的pubTopicList和subTopicList删除
             string topicname(buffer.get()+8, int(head.topic_name_len));
             uint32_t node_index = int82node_index(head.node_index);
+            mynode->deltopic(topicname);
             topic->delTopic(topicname, node_index);
+            topic->printAll();
             break;
         }
         // 对于 topic 的操作其实应该开线程，否则客户端一多就会堵
@@ -615,8 +618,8 @@ void AccpetThread(Broke* const b) {
     struct sockaddr_in cliaddr;
     socklen_t len;
     len = sizeof(cliaddr);
+    printf("Wait client...\n");
     while (1) {
-        printf("Wait a new client...\n");
         clifd = b->WaitAccpet(cliaddr);
         if (clifd == -1)
             perror("accpet error:");
@@ -692,7 +695,6 @@ void ConnectThread(Broke* const b, int connectfd, struct sockaddr_in cliaddr) {
     mynode->WaitForClose();
     // broke 删除 mynode
     b->DelNode(mynode);
-    // cout << mynode.use_count() << endl;
 }
 void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
     mynode->ProtectThread.lock();
@@ -702,7 +704,7 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
     int connectFd = mynode->GetConnFd();
     bool MsgFlag = true;
     mynode->SetState(_online);
-    while (MsgFlag) {
+    while (MsgFlag && mynode->GetState() != _close) {
         shared_ptr<char> buffer(new char[MAX_BUFFER_SIZE]);
         // 获取头部---------------------------------------------------------
         int RecvHeadLen = headlength;
@@ -742,7 +744,7 @@ void ReadThread(Broke* const b, shared_ptr<Node> mynode) {
             continue;
         }
     }
-    mynode->SetState(_close);
+    if (mynode->GetState() != _close) mynode->SetState(_close);
     mynode->CloseWrite();
     printf("read stop\n");
 }
@@ -773,5 +775,8 @@ void MsgCopyToNode(Msg msg) {
 int main() {
     Broke* mybroke = new Broke;
     mybroke->StartServer(IPADDRESS, PORT);
+    signal(SIGINT, SigThread);
+    while (KeepRunning);
     delete mybroke;
+    return 0;
 }
