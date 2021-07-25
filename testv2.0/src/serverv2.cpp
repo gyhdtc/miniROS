@@ -8,7 +8,7 @@ void ConnectThread(Broke* const, int, sockaddr_in);
 void ReadThread(Broke* const, shared_ptr<Node> mynode);
 void WriteThread(Broke* const, shared_ptr<Node> mynode);
 // broke进行数据转发
-void MsgCopyToNode(Msg);
+void MsgCopyToNode(Broke* const, Msg, string);
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
 class Server
@@ -68,8 +68,11 @@ class Topic
 {
 private:
     map<int32_t, set<string>> sub2name; // 发布节点序号 --- 发布话题名称s
+    mutex SubLock;
     map<int32_t, set<string>> pub2name; // 发布节点序号 --- 订阅话题名称s
+    mutex PubLock;
     map<string, pair<int32_t, int32_t>> name2subANDpub; // 名字 --- （订阅节点，发布节点）
+    mutex NameLock;
 public:
     void subTopic(string, int32_t);
     void pubTopic(string, int32_t);
@@ -77,8 +80,11 @@ public:
     void printName(string);
     void printIndex(uint32_t);
     void printAll();
+    uint32_t GetSubNodeSet(string);
 };
 void Topic::subTopic(string name, int32_t index) {
+    unique_lock<mutex> lk(SubLock);
+    unique_lock<mutex> lk2(NameLock);
     if (name2subANDpub.find(name) == name2subANDpub.end() || (name2subANDpub.find(name) != name2subANDpub.end() && name2subANDpub[name].first == 0)) {
         // 没有这个话题，或者有这个话题但是没有话题发布者
         if (name2subANDpub.find(name) == name2subANDpub.end()) {
@@ -102,6 +108,8 @@ void Topic::subTopic(string name, int32_t index) {
     }
 }
 void Topic::pubTopic(string name, int32_t index) {
+    unique_lock<mutex> lk(PubLock);
+    unique_lock<mutex> lk2(NameLock);
     if (name2subANDpub.find(name) == name2subANDpub.end() || (name2subANDpub.find(name) != name2subANDpub.end() && (name2subANDpub[name].second & index) == 0)) {
         // 没有这个话题，或者有这个话题但是此节点没有订阅此话题
         if (name2subANDpub.find(name) == name2subANDpub.end()) {
@@ -125,6 +133,9 @@ void Topic::pubTopic(string name, int32_t index) {
     }
 }
 void Topic::delTopic(string name, int32_t index) {
+    unique_lock<mutex> lk(SubLock);
+    unique_lock<mutex> lk2(PubLock);
+    unique_lock<mutex> lk3(NameLock);
     // 删除全部
     if (name == "all") {
         vector<string> tname;
@@ -168,6 +179,7 @@ void Topic::printAll() {
     }
 }
 void Topic::printName(string name) {
+    unique_lock<mutex> lk(NameLock);
 	cout << "----------------话题信息-------------------\n";
 	if (name2subANDpub.find(name) == name2subANDpub.end()) {
 		cout << "没有" << name << "话题的相关信息\n";
@@ -213,6 +225,8 @@ void Topic::printName(string name) {
 	cout << "-----------------------------------------\n";
 }
 void Topic::printIndex(uint32_t index) {
+    unique_lock<mutex> lk(PubLock);
+    unique_lock<mutex> lk2(SubLock);
 	// 输出为二进制
 	auto idTobit = [](uint32_t index)->string {
 		string res = "0000 0000 0000 0000 0000 0000 0000 0000";
@@ -249,6 +263,11 @@ void Topic::printIndex(uint32_t index) {
 		cout << "\n";
 	}
 	cout << "-----------------------------------------\n";
+}
+uint32_t Topic::GetSubNodeSet(string topicname) {
+    unique_lock<mutex> lk(NameLock);
+    if (name2subANDpub.find(topicname) != name2subANDpub.end()) return name2subANDpub[topicname].second;
+    return 0x00000000;
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
@@ -440,6 +459,8 @@ public:
     bool DelNode(shared_ptr<Node>);
     // 处理数据的函数
     void MsgHandler(shared_ptr<Node>, shared_ptr<char>, Head);
+    uint32_t GetSubNodeSet(string);
+    shared_ptr<Node> GetNodePtr(uint32_t);
     Broke()
     {
         totalNode = 0;
@@ -500,6 +521,14 @@ bool Broke::DelNode(shared_ptr<Node> node) {
     // 删除 节点序号---节点类 映射
     index2nodeptr.erase(node_index);
     return true;
+}
+uint32_t Broke::GetSubNodeSet(string name) {
+    return topic->GetSubNodeSet(name);
+}
+shared_ptr<Node> Broke::GetNodePtr(uint32_t index) {
+    unique_lock<mutex> lk(Index2NodeptrLock);
+    if (index2nodeptr.find(index) != index2nodeptr.end()) return index2nodeptr[index];
+    return NULL;
 }
 void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head head) {
     Msg msg;
@@ -600,7 +629,8 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             msg.buffer = buffer;
             msg.head.node_index = 0b00000000;
             *(msg.buffer.get()+1) = 0;
-            thread t(MsgCopyToNode, msg);
+            string topicname(buffer.get()+8, head.topic_name_len); 
+            thread t(MsgCopyToNode, this, msg, topicname);
             t.detach();
             break;
         }
@@ -767,8 +797,19 @@ void WriteThread(Broke* const b, shared_ptr<Node> mynode) {
     }
     printf("write stop\n");
 }
-void MsgCopyToNode(Msg msg) {
-
+void MsgCopyToNode(Broke* const b, Msg msg, string topicname) {
+    // 得到订阅集合
+    uint32_t nodeset = b->GetSubNodeSet(topicname);
+    uint32_t a = 0x00000001;
+    while (a != 0) {
+        if ((a & nodeset) != 0) {
+            shared_ptr<Node> nodeptr = b->GetNodePtr(a);
+            if (nodeptr) {
+                nodeptr->SendData(msg);
+            }
+        }
+        a = a << 1;
+    }
 }
 /* ---------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------- */
