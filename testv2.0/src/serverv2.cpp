@@ -630,7 +630,7 @@ void Broke::MsgHandler(shared_ptr<Node> mynode, shared_ptr<char> buffer, Head he
             msg.head = head;
             msg.buffer = buffer;
             msg.head.node_index = 0b00000000;
-            *(msg.buffer.get()+1) = 0;
+            *(msg.buffer.get()+1) = 0b00000000;
             uint32_t node_index = head.node_index;
             string topicname(buffer.get()+8, head.topic_name_len); 
             thread t(MsgCopyToNode, this, msg, topicname, node_index);

@@ -95,6 +95,26 @@ int main() {
                 write(sockClient, buffer, 8+name.size());
                 continue;
             }
+            // data
+            if (c == '5') {
+                buffer[0] = 0b10000000;
+                string name;
+                cout << "input pub name\n";
+                cin >> name;
+                int index;
+                cout << "input node index\n";
+                cin >> index;
+                string data;
+                cout << "input data\n";
+                cin >> data;
+                buffer[1] = index;
+                buffer[2] = name.size();
+                buffer[3] = data.size();
+                memcpy(buffer+8, name.c_str(), name.size());
+                memcpy(buffer+8+name.size(), data.c_str(), data.size());
+                buffer[4] = codeGenera(buffer+8, name.size()+data.size());
+                write(sockClient, buffer, 8+name.size()+data.size());
+            }
             if (c == 'q') break;
         }
     }
