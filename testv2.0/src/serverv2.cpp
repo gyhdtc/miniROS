@@ -1,4 +1,4 @@
-#include "../include/headv2.0.h"
+#include "../include/serverhead.h"
 /* 声明一些线程函数 */
 // 等待连接线程
 void AccpetThread(Broke* const);
