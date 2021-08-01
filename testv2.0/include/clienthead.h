@@ -31,8 +31,8 @@ using namespace std;
 // 信号
 int KeepRunning = 1;
 // 定义常量
-#define IPADDRESS   "127.0.0.1"
-#define PORT        8787
+// #define IPADDRESS   "127.0.0.1"
+// #define PORT        8787
 #define MAXSIZE     1024
 #define LISTENQ     100
 #define headlength  8
@@ -73,9 +73,9 @@ const uint8_t data          = 0b10000000;
 // const int checkreg = 1;
 // const int senddata = 2;
 /* 声明一些类 */
-class Server;
-class Node;
 class Client;
+class Node;
+class MyNode;
 
 struct Head {
     uint8_t type;
