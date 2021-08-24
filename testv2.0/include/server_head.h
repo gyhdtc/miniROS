@@ -1,3 +1,5 @@
+#ifndef SERVERHEAD
+#define SERVERHEAD
 #include <thread>
 #include <stdio.h>
 #include <unistd.h>
@@ -31,8 +33,8 @@ using namespace std;
 // 信号
 int KeepRunning = 1;
 // 定义常量
-// #define IPADDRESS   "127.0.0.1"
-// #define PORT        8787
+#define IPADDRESS   "127.0.0.1"
+#define PORT        8787
 #define MAXSIZE     1024
 #define LISTENQ     100
 #define headlength  8
@@ -73,9 +75,10 @@ const uint8_t data          = 0b10000000;
 // const int checkreg = 1;
 // const int senddata = 2;
 /* 声明一些类 */
-class Client;
+class Server;
 class Node;
-class MyNode;
+class Topic;
+class Broke;
 
 struct Head {
     uint8_t type;
@@ -115,6 +118,19 @@ void GetHead(Head& h, const void* start) {
 }
 // 8位比特位输出
 void out(uint8_t* a, size_t len) {
+    cout << "---------------------\n";
+    for (int i = 0; i < len; ++i) {
+        if (i < 8) {
+            cout << bitset<8>(uint8_t(*(a+i))) << endl;
+        }
+        else {
+            cout << *(a+i);
+        }
+    }
+    if (len > 8) cout << endl;
+    cout << "---------------------\n";
+}
+void out(char* a, size_t len) {
     cout << "---------------------\n";
     for (int i = 0; i < len; ++i) {
         if (i < 8) {
@@ -178,34 +194,28 @@ uint8_t codeGenera(const char *Msg, int len) {
 // string转到const char*
 void string2Msg(Msg msg, const string& topicname, const string& data) {
     assert(sizeof(msg.head) == 8);
+    assert(msg.buffer != NULL);
     int len = 8 + topicname.size() + data.size();
-    // shared_ptr<char> buffer(new char[len]);
-    if (data == "" && topicname == "") {
-        memcpy(msg.buffer.get(), &msg.head, 8);    
+    
+    memcpy(msg.buffer.get(), &msg.head, 8);    
+    for (int i = 0; i < topicname.size(); i++) {
+        *(msg.buffer.get()+8+i) = topicname[i];
     }
-    else {
-        for (int i = 0; i < topicname.size(); i++) {
-            *(msg.buffer.get()+8+i) = topicname[i];
-        }
-        for (int i = 0; i < data.size(); i++) {
-            *(msg.buffer.get()+8+topicname.size()+i) = data[i];
-        }
+    for (int i = 0; i < data.size(); i++) {
+        *(msg.buffer.get()+8+topicname.size()+i) = data[i];
     }
 }
 void string2Msg(Msg msg, const string&& topicname, const string&& data) {
     assert(sizeof(msg.head) == 8);
+    assert(msg.buffer != NULL);
     int len = 8 + topicname.size() + data.size();
-    // shared_ptr<char> buffer(new char[len]);
-    if (data == "" && topicname == "") {
-        memcpy(msg.buffer.get(), &msg.head, 8);    
+    
+    memcpy(msg.buffer.get(), &msg.head, 8);    
+    for (int i = 0; i < topicname.size(); i++) {
+        *(msg.buffer.get()+8+i) = topicname[i];
     }
-    else {
-        for (int i = 0; i < topicname.size(); i++) {
-            *(msg.buffer.get()+8+i) = topicname[i];
-        }
-        for (int i = 0; i < data.size(); i++) {
-            *(msg.buffer.get()+8+topicname.size()+i) = data[i];
-        }
+    for (int i = 0; i < data.size(); i++) {
+        *(msg.buffer.get()+8+topicname.size()+i) = data[i];
     }
 }
 // ctrl + c 的程序中止线程
@@ -216,3 +226,4 @@ void SigThread(int sig) {
         cout << endl;
     }
 }
+#endif
