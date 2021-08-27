@@ -33,8 +33,8 @@ using namespace std;
 // 信号
 int KeepRunning = 1;
 // 定义常量
-#define IPADDRESS   "127.0.0.1"
-#define PORT        8787
+string IPADDRESS = "127.0.0.1";
+int PORT = 8787;
 #define MAXSIZE     1024
 #define LISTENQ     100
 #define headlength  8

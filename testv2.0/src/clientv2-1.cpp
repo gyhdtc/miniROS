@@ -60,28 +60,32 @@ class ZuoBiao : public UserDataBase{
         }
         ZuoBiao(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 };
-
-int main() {
-    ZuoBiao zb(1.2, 3.4, 5.6);
+int main(int argc, char *argv[]) {
+    // broke 代理的 ip 和 port
+    string serverip = "127.0.0.1";
+    int serverport = 8787;
+    if (argc == 2) {
+        serverip = argv[1];
+    }
+    if (argc == 3) {
+        serverip = argv[1];
+        serverport = stoi(string(argv[2]));
+    }
     // 本节点的名字
     string myname;
     cout << "input node name:\n";
     cin >> myname;
-    // broke 代理的 ip 和 port
-    string serverip = "127.0.0.1";
-    int serverport = 8787;
     // 创建一个 mynode 类
     MyNode* mynode = new MyNode(serverip, serverport);
     mynode->StartClient(myname);
     // 注册
     mynode->Reg();
-    // 订阅
-    // mynode->AddSub("shit");
     // 发布
     mynode->AddPub("zuobiao");
     float x = 1.2;
     float y = 3.4;
     float z = 5.6;
+    ZuoBiao zb(x, y, z);
     for (int i = 0; i < 20; i++)
         mynode->SendData("zuobiao", zb.Set(x+i, y, z).Class2String());
 
