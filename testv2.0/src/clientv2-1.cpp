@@ -60,6 +60,36 @@ class ZuoBiao : public UserDataBase{
         }
         ZuoBiao(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 };
+class A {
+private:
+    int command;
+
+public:
+    A(int x = 0): command(x) {}
+    std::string Class2String(char split = ';') {
+        std::string res;
+        res.append(std::to_string(command));
+        res.push_back(split);
+        return res;
+    }
+    void String2Class(std::string str = "0;", char split = ';') {
+        double parse[1] = {0};
+        int idx = 0, next = -1;
+  
+        try {
+            for(int i = 0; i < 1; ++i) {
+                idx = next + 1;
+                next = str.find(split, idx);
+                parse[i] = std::stod(str.substr(idx, next - idx));
+            }
+        } catch (...) {
+            std::cout << " " << std::endl;
+            this-> command = 0;
+        }
+        command = parse[0];
+    }
+    A& Set(int shit) { command = shit; return *this; }
+};
 int main(int argc, char *argv[]) {
     // broke 代理的 ip 和 port
     string serverip = "127.0.0.1";
@@ -81,13 +111,19 @@ int main(int argc, char *argv[]) {
     // 注册
     mynode->Reg();
     // 发布
-    mynode->AddPub("zuobiao");
-    float x = 1.2;
-    float y = 3.4;
-    float z = 5.6;
-    ZuoBiao zb(x, y, z);
-    for (int i = 0; i < 20; i++)
-        mynode->SendData("zuobiao", zb.Set(x+i, y, z).Class2String());
+    mynode->AddPub("shou");
+    // float x = 1.2;
+    // float y = 3.4;
+    // float z = 5.6;
+    // ZuoBiao zb(x, y, z);
+    // for (int i = 0; i < 20; i++)
+    //     mynode->SendData("zuobiao", zb.Set(x+i, y, z).Class2String());
+    A a;
+    while (1) {
+        int shit;
+        cin >> shit;
+        mynode->SendData("shou", a.Set(shit).Class2String());
+    }
 
     signal(SIGINT, SigThread);
     while (KeepRunning);
