@@ -34,62 +34,45 @@ class ZuoBiao : public UserDataBase{
             return *this;
         }
         string Class2String() const {
-            string ans = "";
-            ans += Convert(x);
-            ans += Convert(y);
-            ans += Convert(z);
-            return ans;
+            std::string res;
+            char split = ';';
+            res.append(std::to_string(x));
+            res.push_back(split);
+            res.append(std::to_string(y));
+            res.push_back(split);
+            res.append(std::to_string(z));
+            res.push_back(split);
+            return res;
         }
-        void String2Class(string s) {
-            memcpy(&x, s.c_str(), 4);
-            memcpy(&y, s.c_str()+4, 4);
-            memcpy(&z, s.c_str()+8, 4);
+        void String2Class(string str) {
+            float parse[3] = {0};
+            int idx = 0, next = -1;
+            char split = ';';    
+            try {
+                for(int i = 0; i < 1; ++i) {
+                    idx = next + 1;
+                    next = str.find(split, idx);
+                    parse[i] = std::stod(str.substr(idx, next - idx));
+                }
+            } catch (...) {
+                std::cout << " " << std::endl;
+                this-> x = 0.0;
+                this-> y = 0.0;
+                this-> z = 0.0;
+            }
+            this-> x = parse[0];
+            this-> y = parse[1];
+            this-> z = parse[2];
         }
-        void String2Class(const char *c, size_t len) {
-            if (len == 12) {
-                memcpy(&x, c, 4);
-                memcpy(&y, c+4, 4);
-                memcpy(&z, c+8, 4);
-            }
-            else {
-                printf("len is not 12\n");
-            }
+        void String2Class(const char *, size_t len) {
+
         }
         void print() const {
             printf("%f\n%f\n%f\n", x, y, z);
         }
         ZuoBiao(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 };
-class A {
-private:
-    int command;
 
-public:
-    A(int x = 0): command(x) {}
-    std::string Class2String(char split = ';') {
-        std::string res;
-        res.append(std::to_string(command));
-        res.push_back(split);
-        return res;
-    }
-    void String2Class(std::string str = "0;", char split = ';') {
-        double parse[1] = {0};
-        int idx = 0, next = -1;
-  
-        try {
-            for(int i = 0; i < 1; ++i) {
-                idx = next + 1;
-                next = str.find(split, idx);
-                parse[i] = std::stod(str.substr(idx, next - idx));
-            }
-        } catch (...) {
-            std::cout << " " << std::endl;
-            this-> command = 0;
-        }
-        command = parse[0];
-    }
-    A& Set(int shit) { command = shit; return *this; }
-};
 int main(int argc, char *argv[]) {
     // broke 代理的 ip 和 port
     string serverip = "127.0.0.1";
@@ -111,18 +94,14 @@ int main(int argc, char *argv[]) {
     // 注册
     mynode->Reg();
     // 发布
-    mynode->AddPub("shou");
-    // float x = 1.2;
-    // float y = 3.4;
-    // float z = 5.6;
-    // ZuoBiao zb(x, y, z);
-    // for (int i = 0; i < 20; i++)
-    //     mynode->SendData("zuobiao", zb.Set(x+i, y, z).Class2String());
-    A a;
-    while (1) {
-        int shit;
-        cin >> shit;
-        mynode->SendData("shou", a.Set(shit).Class2String());
+    mynode->AddPub("movetcp");
+    
+    ZuoBiao a(0, 0, 0);
+    int flag = 1;
+    while (flag) {
+        float x, y, z;
+        cin >> x >> y >> z >> flag;
+        mynode->SendData("movetcp", a.Set(x, y, z).Class2String());
     }
 
     signal(SIGINT, SigThread);
