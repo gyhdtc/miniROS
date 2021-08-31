@@ -93,6 +93,18 @@ Msg Node::GetTopMsg() {
     Message.pop_front();
     return msg;
 }
+void Node::GetData(Msg msg) {
+    unique_lock<mutex> lk(MsgLock);
+    RecvMessage.push_back(msg);
+    RecvCv.notify_one();
+}
+Msg Node::WaitForData() {
+    unique_lock<mutex> lk(MsgLock);
+    RecvCv.wait(lk);
+    Msg m = RecvMessage.front();
+    RecvMessage.pop_front();
+    return m;
+}
 /* ---------------------------------------------------------------------- */
 void MyNode::StartClient(string name) {
     int fd;
@@ -181,6 +193,9 @@ void MyNode::SendData(string topicname, string tdata) {
     string2Msg(msg, topicname, tdata);
     node->SendData(msg);
 }
+Msg MyNode::WaitForData() {
+    return node->WaitForData();
+}
 void MyNode::MsgHandler(shared_ptr<Node> node, shared_ptr<char> buffer, Head head) {
     Msg msg;
     switch (head.type)
@@ -207,7 +222,9 @@ void MyNode::MsgHandler(shared_ptr<Node> node, shared_ptr<char> buffer, Head hea
         case data:
         {
             printf("get data\n");
-            
+            msg.buffer = buffer;
+            msg.head = head;
+            node->GetData(msg);
             break;
         }
         default:

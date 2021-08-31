@@ -57,7 +57,7 @@ void ReadThread(MyNode* const mynode, shared_ptr<Node> node) {
             else
                 MsgFlag = false;
         }
-        out((uint8_t *)buffer.get(), headlength+head.topic_name_len+head.data_len);
+        // out((uint8_t *)buffer.get(), headlength+head.topic_name_len+head.data_len);
         // 处理数据---------------------------------------------------------
         assert(head.check_code == codeGenera(buffer.get()+8, head.topic_name_len+head.data_len));
         if (MsgFlag) {

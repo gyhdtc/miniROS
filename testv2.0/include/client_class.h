@@ -8,8 +8,6 @@ class UserDataBase {
         virtual string Class2String() const = 0;
         // string转类数据
         virtual void String2Class(string) = 0;
-        // char指针转类数据
-        virtual void String2Class(const char *, size_t len) = 0;
 };
 /* ---------------------------------------------------------------------- */
 class Client
@@ -43,7 +41,10 @@ private:
     string nodeName;// 数据传输后，不变
     set<string> subTopicList;// 节点 订阅 的话题
     set<string> pubTopicList;// 节点 发布 的话题
-    deque<Msg> Message;// 数据消息
+    deque<Msg> Message;// 发送数据消息队列
+    deque<Msg> RecvMessage;// 接收数据消息队列
+    mutex RecvLock;
+    condition_variable RecvCv;
     mutex MsgLock;
     sem_t Msg_Sem;
 public:
@@ -62,6 +63,8 @@ public:
     void SendTopic(Msg&);
     void WaitForSendMsg();
     Msg GetTopMsg();
+    void GetData(Msg);
+    Msg WaitForData();
     bool AddSub(string);// 处理话题信息
     bool AddPub(string);
     bool deltopic(string);
@@ -93,6 +96,7 @@ public:
     void AddPub(string);
     void DelTopic(string);
     void SendData(string, string);
+    Msg WaitForData();
     void MsgHandler(shared_ptr<Node>, shared_ptr<char>, Head);
     MyNode(string _ip, int _port) {
         client = make_shared<Client>(_ip, _port);
